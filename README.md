@@ -5,6 +5,26 @@ Products define a JSON schema. Policies store attributes against that schema, so
 - `apps/api` — NestJS + TypeORM + PostgreSQL
 - `apps/web` — React (Vite)
 
+Live demo (same seeded logins as below): https://web-production-f9d422.up.railway.app  
+Swagger: https://web-production-f9d422.up.railway.app/api/docs
+
+## Architecture
+
+The website talks to the API over `/api`. In Docker, nginx serves the React app and forwards `/api` to Nest. The API sets `app.tenant_id` on the Postgres connection so row-level security only returns that office’s rows. Migrations and seed run as `postgres`; the running API uses `policy_app`.
+
+![Architecture diagram](docs/architecture.png)
+
+## Database schema
+
+Shared tables, one database. Each office is a `tenants` row. Product-specific answers live in `policies.attributes` JSONB, not extra columns. `policy_types.schema` is the form definition.
+
+![Database schema](docs/schema.png)
+
+- Unique email and product name are **per office** (`tenant_id` + email / name).
+- `tenants` is not behind RLS (login must look up `atom` / `northwind`).
+- `users`, `policy_types`, `policies`, and both event tables are behind RLS.
+- Status: `DRAFT` → `ACTIVE` or `INACTIVE`; `INACTIVE` → `ACTIVE` needs a reason.
+
 ## How to run the application
 
 Docker Compose v2:
@@ -124,7 +144,7 @@ Postgres is on host port `5433` (see `.env`).
 
 - Attachments on S3, an IdP instead of seeded users, and a real deploy (ECS/ALB, Aurora).
 - Issued policy documents (letterhead, versioning, e-sign) rather than the working-copy snapshot PDF.
-- Out of scope on purpose: rating, claims, documents, email, bordereaux.
+- AI on the policy book: a copilot that recommends the product and fields from a short brief, flags missing required attributes and wording gaps against the current schema, and surfaces similar in-force policies so underwriters are not starting from a blank form. Natural-language search over `search_text` plus attributes would sit on the same path. Document intake (once attachments exist) could pre-fill JSONB attributes instead of typing them.
 
 ## Swagger
 
