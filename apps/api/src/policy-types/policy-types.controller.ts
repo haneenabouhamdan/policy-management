@@ -38,8 +38,8 @@ export class PolicyTypesController {
   @Roles(UserRole.ADMIN, UserRole.UNDERWRITER, UserRole.VIEWER)
   @ApiOperation({ summary: 'List policy types' })
   @ApiOkResponse({ type: [PolicyTypeResponseDto] })
-  findAll() {
-    return this.policyTypesService.findAll();
+  findAll(@CurrentUser() actor: AuthUser) {
+    return this.policyTypesService.findAll(actor);
   }
 
   @Get(':id/events')
@@ -47,8 +47,11 @@ export class PolicyTypesController {
   @ApiOperation({ summary: 'List schema and product edit history' })
   @ApiParam({ name: 'id', format: 'uuid' })
   @ApiOkResponse({ type: [PolicyTypeEventResponseDto] })
-  listEvents(@Param('id', ParseUUIDPipe) id: string) {
-    return this.policyTypesService.listEvents(id);
+  listEvents(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() actor: AuthUser,
+  ) {
+    return this.policyTypesService.listEvents(id, actor);
   }
 
   @Get(':id')
@@ -56,8 +59,11 @@ export class PolicyTypesController {
   @ApiOperation({ summary: 'Get a policy type by id' })
   @ApiParam({ name: 'id', format: 'uuid' })
   @ApiOkResponse({ type: PolicyTypeResponseDto })
-  findOne(@Param('id', ParseUUIDPipe) id: string) {
-    return this.policyTypesService.findOne(id);
+  findOne(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() actor: AuthUser,
+  ) {
+    return this.policyTypesService.findOne(id, actor);
   }
 
   @Post()

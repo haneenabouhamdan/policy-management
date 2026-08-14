@@ -11,7 +11,7 @@ export class PolicyEventResponseDto {
   @ApiProperty({ enum: PolicyEventType })
   type!: PolicyEventType;
 
-  @ApiProperty({ example: 'admin@local.dev' })
+  @ApiProperty({ example: 'maya.hassan@atomcover.com' })
   actorEmail!: string;
 
   @ApiProperty({

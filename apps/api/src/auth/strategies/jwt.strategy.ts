@@ -10,6 +10,7 @@ import type { AuthUser } from '../types/auth-user';
 type JwtPayload = {
   sub: string;
   email: string;
+  tenantId?: string;
 };
 
 @Injectable()
@@ -27,9 +28,12 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   }
 
   async validate(payload: JwtPayload): Promise<AuthUser> {
-    const user = await this.usersRepo.findOne({ where: { id: payload.sub } });
+    const user = await this.usersRepo.findOne({
+      where: { id: payload.sub },
+      relations: { tenant: true },
+    });
 
-    if (!user || !user.isActive) {
+    if (!user || !user.isActive || !user.tenant) {
       throw new UnauthorizedException();
     }
 
@@ -37,6 +41,8 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       id: user.id,
       email: user.email,
       role: user.role,
+      tenantId: user.tenantId,
+      tenantName: user.tenant.name,
     };
   }
 }

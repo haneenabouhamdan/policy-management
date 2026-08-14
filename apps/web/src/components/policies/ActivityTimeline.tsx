@@ -27,6 +27,9 @@ export function ActivityTimeline({ events }: { events: PolicyEvent[] }) {
             <p className="text-xs text-ink-400">
               {event.actorEmail} · {new Date(event.createdAt).toLocaleString()}
             </p>
+            {typeof event.payload.reason === "string" && event.payload.reason ? (
+              <p className="mt-1 text-xs text-ink-500">{event.payload.reason}</p>
+            ) : null}
           </div>
         </li>
       ))}

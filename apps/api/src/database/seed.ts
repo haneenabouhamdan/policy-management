@@ -5,6 +5,7 @@ import dataSource from './data-source';
 import { Policy } from '../entities/policy.entity';
 import { PolicyStatus } from '../entities/policy-status.enum';
 import { PolicyType } from '../entities/policy-type.entity';
+import { Tenant } from '../entities/tenant.entity';
 
 type ProductSeed = {
   name: string;
@@ -275,19 +276,84 @@ const POLICIES: PolicySeed[] = [
   },
 ];
 
-async function seed() {
-  await dataSource.initialize();
-  await dataSource.runMigrations();
+const NORTHWIND_PRODUCTS: ProductSeed[] = [
+  {
+    name: 'Cargo',
+    description: 'Marine cargo cover for Northwind MGA',
+    schema: {
+      sections: [
+        {
+          id: 'shipment',
+          title: 'Shipment',
+          fields: [
+            {
+              key: 'incoterm',
+              label: 'Incoterm',
+              type: 'select',
+              required: true,
+              options: ['CIF', 'FOB', 'EXW'],
+            },
+            {
+              key: 'sumInsured',
+              label: 'Sum insured',
+              type: 'number',
+              required: true,
+              min: 1000,
+            },
+            {
+              key: 'territory',
+              label: 'Territory',
+              type: 'select',
+              required: true,
+              options: ['UAE', 'GCC', 'Worldwide'],
+            },
+          ],
+        },
+      ],
+    },
+  },
+];
+
+const NORTHWIND_POLICIES: PolicySeed[] = [
+  {
+    name: 'Jebel Ali CIF shipment',
+    typeName: 'Cargo',
+    status: PolicyStatus.ACTIVE,
+    attributes: {
+      incoterm: 'CIF',
+      sumInsured: 250000,
+      territory: 'UAE',
+    },
+  },
+  {
+    name: 'FOB spare parts draft',
+    typeName: 'Cargo',
+    status: PolicyStatus.DRAFT,
+    attributes: {
+      incoterm: 'FOB',
+      sumInsured: 40000,
+      territory: 'GCC',
+    },
+  },
+];
+
+async function seedBook(
+  tenant: Tenant,
+  products: ProductSeed[],
+  policies: PolicySeed[],
+) {
   const typesRepo = dataSource.getRepository(PolicyType);
   const policiesRepo = dataSource.getRepository(Policy);
-
   const typesByName = new Map<string, PolicyType>();
 
-  for (const product of PRODUCTS) {
-    let type = await typesRepo.findOne({ where: { name: product.name } });
+  for (const product of products) {
+    let type = await typesRepo.findOne({
+      where: { name: product.name, tenantId: tenant.id },
+    });
     if (!type) {
       type = await typesRepo.save(
         typesRepo.create({
+          tenantId: tenant.id,
           name: product.name,
           description: product.description,
           schema: product.schema,
@@ -299,8 +365,10 @@ async function seed() {
   }
 
   let created = 0;
-  for (const item of POLICIES) {
-    const existing = await policiesRepo.findOne({ where: { name: item.name } });
+  for (const item of policies) {
+    const existing = await policiesRepo.findOne({
+      where: { name: item.name, tenantId: tenant.id },
+    });
     if (existing) continue;
 
     const type = typesByName.get(item.typeName);
@@ -310,6 +378,7 @@ async function seed() {
       const attributes = validateAttributes(type.schema, item.attributes);
       await policiesRepo.save(
         policiesRepo.create({
+          tenantId: tenant.id,
           typeId: type.id,
           name: item.name,
           status: item.status,
@@ -329,9 +398,29 @@ async function seed() {
     }
   }
 
-  const total = await policiesRepo.count();
+  return { products: typesByName.size, created };
+}
+
+async function seed() {
+  await dataSource.initialize();
+  await dataSource.runMigrations();
+  const tenantsRepo = dataSource.getRepository(Tenant);
+  const atom = await tenantsRepo.findOne({ where: { slug: 'atom' } });
+  const northwind = await tenantsRepo.findOne({ where: { slug: 'northwind' } });
+  if (!atom || !northwind) {
+    throw new Error('Tenants missing. Run migrations first.');
+  }
+
+  const atomResult = await seedBook(atom, PRODUCTS, POLICIES);
+  const northwindResult = await seedBook(
+    northwind,
+    NORTHWIND_PRODUCTS,
+    NORTHWIND_POLICIES,
+  );
+  const total = await dataSource.getRepository(Policy).count();
+
   console.log(
-    `Seed complete. Products: ${typesByName.size}. Policies added: ${created}. Total policies: ${total}.`,
+    `Seed complete. Atom products: ${atomResult.products}, policies added: ${atomResult.created}. Northwind products: ${northwindResult.products}, policies added: ${northwindResult.created}. Total policies: ${total}.`,
   );
   await dataSource.destroy();
 }

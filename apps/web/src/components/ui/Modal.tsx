@@ -9,6 +9,7 @@ export function Modal({
   onConfirm,
   onClose,
   busy,
+  confirmDisabled,
 }: {
   open: boolean;
   title: string;
@@ -18,6 +19,7 @@ export function Modal({
   onConfirm: () => void;
   onClose: () => void;
   busy?: boolean;
+  confirmDisabled?: boolean;
 }) {
   if (!open) return null;
 
@@ -37,7 +39,7 @@ export function Modal({
             <Button variant="secondary" onClick={onClose} disabled={busy}>
               {cancelLabel}
             </Button>
-            <Button onClick={onConfirm} disabled={busy}>
+            <Button onClick={onConfirm} disabled={busy || confirmDisabled}>
               {busy ? "Working…" : confirmLabel}
             </Button>
           </div>

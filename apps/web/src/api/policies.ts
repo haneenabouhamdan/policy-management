@@ -55,11 +55,19 @@ export function updatePolicy(
   return apiRequest<Policy>(`/policies/${id}`, { method: "PATCH", body });
 }
 
-export function updatePolicyStatus(id: string, status: PolicyStatus) {
+export function updatePolicyStatus(
+  id: string,
+  status: PolicyStatus,
+  reason?: string,
+) {
   return apiRequest<Policy>(`/policies/${id}/status`, {
     method: "PATCH",
-    body: { status },
+    body: { status, reason },
   });
+}
+
+export function duplicatePolicy(id: string) {
+  return apiRequest<Policy>(`/policies/${id}/duplicate`, { method: "POST" });
 }
 
 export function listPolicyEvents(id: string) {

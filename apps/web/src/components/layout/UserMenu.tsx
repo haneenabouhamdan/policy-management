@@ -82,6 +82,11 @@ export function UserMenu() {
             <p className="mt-0.5 truncate text-xs text-ink-400">
               {user?.email}
             </p>
+            {user?.tenantName ? (
+              <p className="mt-1 truncate text-xs text-ink-500">
+                {user.tenantName}
+              </p>
+            ) : null}
             <span className="mt-2 inline-flex rounded-full bg-orange-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.1em] text-orange-700 ring-1 ring-inset ring-orange-200">
               {user?.role}
             </span>

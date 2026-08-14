@@ -29,6 +29,8 @@ export type AuthUser = {
   email: string;
   fullName: string;
   role: UserRole;
+  tenantId: string;
+  tenantName: string;
 };
 
 export type LoginResponse = {

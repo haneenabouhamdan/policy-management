@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  duplicatePolicy,
   getPolicy,
   listPolicyEvents,
   updatePolicyStatus,
@@ -24,6 +25,7 @@ export function PolicyDetailPage() {
   const queryClient = useQueryClient();
   const { canWritePolicies } = useAuth();
   const [pendingStatus, setPendingStatus] = useState<PolicyStatus | null>(null);
+  const [reason, setReason] = useState("");
   const [actionError, setActionError] = useState("");
 
   const policyQuery = useQuery({
@@ -38,10 +40,15 @@ export function PolicyDetailPage() {
     enabled: !!id,
   });
 
+  const needsReason =
+    pendingStatus === "ACTIVE" && policyQuery.data?.status === "INACTIVE";
+
   const statusMutation = useMutation({
-    mutationFn: (status: PolicyStatus) => updatePolicyStatus(id, status),
+    mutationFn: (status: PolicyStatus) =>
+      updatePolicyStatus(id, status, needsReason ? reason.trim() : undefined),
     onSuccess: async () => {
       setPendingStatus(null);
+      setReason("");
       setActionError("");
       await queryClient.invalidateQueries({ queryKey: ["policy", id] });
       await queryClient.invalidateQueries({ queryKey: ["policies"] });
@@ -50,6 +57,19 @@ export function PolicyDetailPage() {
     onError: (err) => {
       setActionError(
         err instanceof ApiError ? err.message : "Could not update status",
+      );
+    },
+  });
+
+  const duplicateMutation = useMutation({
+    mutationFn: () => duplicatePolicy(id),
+    onSuccess: async (copy) => {
+      await queryClient.invalidateQueries({ queryKey: ["policies"] });
+      navigate(`/policies/${copy.id}`);
+    },
+    onError: (err) => {
+      setActionError(
+        err instanceof ApiError ? err.message : "Could not duplicate policy",
       );
     },
   });
@@ -100,13 +120,45 @@ export function PolicyDetailPage() {
           <div className="flex flex-wrap gap-2">
             <Button
               variant="secondary"
+              onClick={() => duplicateMutation.mutate()}
+              disabled={duplicateMutation.isPending}
+            >
+              Duplicate
+            </Button>
+            <Button
+              variant="secondary"
+              className="gap-1.5"
               onClick={() => navigate(`/policies/${policy.id}/edit`)}
             >
+              <svg
+                viewBox="0 0 20 20"
+                fill="none"
+                aria-hidden
+                className="h-4 w-4"
+              >
+                <path
+                  d="M12.2 4.4 15.6 7.8 7.5 15.9H4.1v-3.4L12.2 4.4Z"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  strokeLinejoin="round"
+                />
+                <path
+                  d="M10.7 5.9 14.1 9.3"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                />
+              </svg>
               Edit
             </Button>
             {policy.status === "DRAFT" ? (
               <Button onClick={() => setPendingStatus("ACTIVE")}>
                 Activate
+              </Button>
+            ) : null}
+            {policy.status === "INACTIVE" ? (
+              <Button onClick={() => setPendingStatus("ACTIVE")}>
+                Reactivate
               </Button>
             ) : null}
             {policy.status === "DRAFT" || policy.status === "ACTIVE" ? (
@@ -156,16 +208,41 @@ export function PolicyDetailPage() {
 
       <Modal
         open={!!pendingStatus}
-        title={`Mark policy as ${pendingStatus}?`}
-        confirmLabel={pendingStatus === "ACTIVE" ? "Activate" : "Deactivate"}
+        title={
+          pendingStatus === "ACTIVE" && policy.status === "INACTIVE"
+            ? "Reactivate this policy?"
+            : `Mark policy as ${pendingStatus}?`
+        }
+        confirmLabel={
+          pendingStatus === "ACTIVE"
+            ? policy.status === "INACTIVE"
+              ? "Reactivate"
+              : "Activate"
+            : "Deactivate"
+        }
         busy={statusMutation.isPending}
-        onClose={() => setPendingStatus(null)}
+        confirmDisabled={needsReason && reason.trim().length < 8}
+        onClose={() => {
+          setPendingStatus(null);
+          setReason("");
+        }}
         onConfirm={() => {
           if (pendingStatus) statusMutation.mutate(pendingStatus);
         }}
       >
-        This updates the policy status immediately. Only allowed transitions
-        will succeed.
+        {needsReason ? (
+          <div className="space-y-2">
+            <p>Inactive policies need a short reason before they go active again.</p>
+            <textarea
+              className="min-h-24 w-full rounded-xl border border-ink-200 px-3 py-2 text-sm text-ink-800 outline-none ring-brand-600/20 focus:ring-2"
+              placeholder="Why is cover being reinstated?"
+              value={reason}
+              onChange={(event) => setReason(event.target.value)}
+            />
+          </div>
+        ) : (
+          "This updates the policy status immediately. Only allowed transitions will succeed."
+        )}
       </Modal>
     </div>
   );

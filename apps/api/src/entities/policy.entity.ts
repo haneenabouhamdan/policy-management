@@ -10,14 +10,24 @@ import {
 } from 'typeorm';
 import { PolicyType } from './policy-type.entity';
 import { PolicyStatus } from './policy-status.enum';
+import { Tenant } from './tenant.entity';
 
 @Entity({ name: 'policies' })
 @Index('IDX_policies_status', ['status'])
 @Index('IDX_policies_type_status', ['typeId', 'status'])
+@Index('IDX_policies_tenant_status', ['tenantId', 'status'])
+@Index('IDX_policies_tenant_type_status', ['tenantId', 'typeId', 'status'])
 @Index('IDX_policies_updated_at', ['updatedAt'])
 export class Policy {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
+
+  @Column({ name: 'tenant_id', type: 'uuid' })
+  tenantId!: string;
+
+  @ManyToOne(() => Tenant, { onDelete: 'RESTRICT', nullable: false })
+  @JoinColumn({ name: 'tenant_id' })
+  tenant!: Tenant;
 
   @Column({ name: 'type_id', type: 'uuid' })
   typeId!: string;

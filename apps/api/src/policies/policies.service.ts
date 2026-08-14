@@ -41,7 +41,10 @@ export class PoliciesService {
     private readonly eventsRepo: Repository<PolicyEvent>,
   ) {}
 
-  async findAll(query: ListPoliciesQueryDto): Promise<PaginatedPolicies> {
+  async findAll(
+    query: ListPoliciesQueryDto,
+    actor: AuthUser,
+  ): Promise<PaginatedPolicies> {
     const page = query.page ?? 1;
     const limit = query.limit ?? 20;
 
@@ -58,6 +61,7 @@ export class PoliciesService {
       ])
       .leftJoin('policy.type', 'type')
       .addSelect(['type.id', 'type.name'])
+      .where('policy.tenantId = :tenantId', { tenantId: actor.tenantId })
       .orderBy('policy.updatedAt', 'DESC')
       .skip((page - 1) * limit)
       .take(limit);
@@ -108,11 +112,12 @@ export class PoliciesService {
     };
   }
 
-  async summarize(): Promise<PolicySummaryDto> {
+  async summarize(actor: AuthUser): Promise<PolicySummaryDto> {
     const statusRows = await this.policiesRepo
       .createQueryBuilder('policy')
       .select('policy.status', 'status')
       .addSelect('COUNT(*)', 'count')
+      .where('policy.tenantId = :tenantId', { tenantId: actor.tenantId })
       .groupBy('policy.status')
       .getRawMany<{ status: PolicyStatus; count: string }>();
 
@@ -128,6 +133,7 @@ export class PoliciesService {
         .select('type.id', 'id')
         .addSelect('type.name', 'name')
         .addSelect('COUNT(*)', 'count')
+        .where('policy.tenantId = :tenantId', { tenantId: actor.tenantId })
         .groupBy('type.id')
         .addGroupBy('type.name')
         .orderBy('type.name', 'ASC')
@@ -142,7 +148,8 @@ export class PoliciesService {
       .createQueryBuilder('policy')
       .innerJoin('policy.type', 'type')
       .select('COUNT(*)', 'count')
-      .where('policy.schemaVersion < type.schemaVersion')
+      .where('policy.tenantId = :tenantId', { tenantId: actor.tenantId })
+      .andWhere('policy.schemaVersion < type.schemaVersion')
       .getRawOne<{ count: string }>();
 
     return {
@@ -153,9 +160,9 @@ export class PoliciesService {
     };
   }
 
-  async findOne(id: string): Promise<Policy> {
+  async findOne(id: string, actor: AuthUser): Promise<Policy> {
     const policy = await this.policiesRepo.findOne({
-      where: { id },
+      where: { id, tenantId: actor.tenantId },
       relations: { type: true },
     });
 
@@ -166,8 +173,8 @@ export class PoliciesService {
     return policy;
   }
 
-  async listEvents(policyId: string): Promise<PolicyEvent[]> {
-    await this.findOne(policyId);
+  async listEvents(policyId: string, actor: AuthUser): Promise<PolicyEvent[]> {
+    await this.findOne(policyId, actor);
     return this.eventsRepo.find({
       where: { policyId },
       order: { createdAt: 'DESC' },
@@ -177,7 +184,7 @@ export class PoliciesService {
 
   async create(dto: CreatePolicyDto, actor: AuthUser): Promise<Policy> {
     const type = await this.policyTypesRepo.findOne({
-      where: { id: dto.typeId },
+      where: { id: dto.typeId, tenantId: actor.tenantId },
     });
     if (!type) {
       throw new NotFoundException(`Policy type ${dto.typeId} not found`);
@@ -187,6 +194,7 @@ export class PoliciesService {
     const name = dto.name.trim();
 
     const policy = this.policiesRepo.create({
+      tenantId: actor.tenantId,
       typeId: type.id,
       name,
       status: PolicyStatus.DRAFT,
@@ -201,7 +209,29 @@ export class PoliciesService {
       typeId: type.id,
       schemaVersion: type.schemaVersion,
     });
-    return this.findOne(saved.id);
+    return this.findOne(saved.id, actor);
+  }
+
+  async duplicate(id: string, actor: AuthUser): Promise<Policy> {
+    const source = await this.findOne(id, actor);
+    const name = `${source.name} (copy)`.slice(0, 200);
+    const policy = this.policiesRepo.create({
+      tenantId: actor.tenantId,
+      typeId: source.typeId,
+      name,
+      status: PolicyStatus.DRAFT,
+      attributes: source.attributes,
+      schemaVersion: source.schemaVersion,
+      searchText: buildSearchText(name, source.attributes),
+    });
+    const saved = await this.policiesRepo.save(policy);
+    await this.recordEvent(saved.id, PolicyEventType.CREATED, actor, {
+      name,
+      typeId: source.typeId,
+      schemaVersion: source.schemaVersion,
+      duplicatedFrom: source.id,
+    });
+    return this.findOne(saved.id, actor);
   }
 
   async update(
@@ -209,7 +239,7 @@ export class PoliciesService {
     dto: UpdatePolicyDto,
     actor: AuthUser,
   ): Promise<Policy> {
-    const policy = await this.findOne(id);
+    const policy = await this.findOne(id, actor);
     const type = policy.type;
     const before = {
       name: policy.name,
@@ -239,7 +269,7 @@ export class PoliciesService {
         schemaVersion: policy.schemaVersion,
       },
     });
-    return this.findOne(id);
+    return this.findOne(id, actor);
   }
 
   async updateStatus(
@@ -247,16 +277,18 @@ export class PoliciesService {
     dto: UpdatePolicyStatusDto,
     actor: AuthUser,
   ): Promise<Policy> {
-    const policy = await this.findOne(id);
+    const policy = await this.findOne(id, actor);
     const from = policy.status;
-    assertStatusTransition(from, dto.status);
+    const reason = dto.reason?.trim();
+    assertStatusTransition(from, dto.status, { reason });
     policy.status = dto.status;
     await this.policiesRepo.save(policy);
     await this.recordEvent(id, PolicyEventType.STATUS_CHANGED, actor, {
       from,
       to: dto.status,
+      reason,
     });
-    return this.findOne(id);
+    return this.findOne(id, actor);
   }
 
   private recordEvent(

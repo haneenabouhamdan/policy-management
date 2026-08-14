@@ -1,4 +1,5 @@
 import { NavLink, Outlet } from "react-router-dom";
+import { useAuth } from "../../auth/AuthContext";
 import { UserMenu } from "./UserMenu";
 import { cn } from "../../lib/cn";
 
@@ -10,6 +11,11 @@ const linkClass = ({ isActive }: { isActive: boolean }) =>
       : "text-ink-500 hover:bg-ink-100 hover:text-ink-800",
   );
 
+function TenantLabel() {
+  const { user } = useAuth();
+  return <>{user?.tenantName || "Policy administration"}</>;
+}
+
 export function AppShell() {
   return (
     <div className="min-h-screen">
@@ -20,7 +26,9 @@ export function AppShell() {
               <p className="font-display text-[15px] text-ink-900">
                 Policy admin
               </p>
-              <p className="text-[11px] text-ink-400">Policy administration</p>
+              <p className="text-[11px] text-ink-400">
+                <TenantLabel />
+              </p>
             </div>
             <nav className="flex items-center gap-1">
               <NavLink to="/policies" className={linkClass}>

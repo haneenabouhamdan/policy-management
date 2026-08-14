@@ -5,14 +5,20 @@ export class AuthUserDto {
   @ApiProperty({ format: 'uuid' })
   id!: string;
 
-  @ApiProperty({ example: 'admin@local.dev' })
+  @ApiProperty({ example: 'maya.hassan@atomcover.com' })
   email!: string;
 
-  @ApiProperty({ example: 'Admin User' })
+  @ApiProperty({ example: 'Maya Hassan' })
   fullName!: string;
 
   @ApiProperty({ enum: UserRole, example: UserRole.ADMIN })
   role!: UserRole;
+
+  @ApiProperty({ format: 'uuid' })
+  tenantId!: string;
+
+  @ApiProperty({ example: 'Atom Coverholder' })
+  tenantName!: string;
 }
 
 export class LoginResponseDto {

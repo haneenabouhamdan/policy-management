@@ -272,10 +272,32 @@ export function PolicyTypesPage() {
                             type="button"
                             size="sm"
                             variant="ghost"
+                            className="gap-1.5"
                             onClick={() =>
                               setHistoryId(expanded ? null : type.id)
                             }
                           >
+                            <svg
+                              viewBox="0 0 20 20"
+                              fill="none"
+                              aria-hidden
+                              className="h-3.5 w-3.5"
+                            >
+                              <path
+                                d="M10 5.5V10l2.5 1.5M17 10a7 7 0 1 1-7-7"
+                                stroke="currentColor"
+                                strokeWidth="1.5"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              />
+                              <path
+                                d="M14 4.5v2.5H16.5"
+                                stroke="currentColor"
+                                strokeWidth="1.5"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              />
+                            </svg>
                             {expanded ? "Hide" : "History"}
                           </Button>
                           {canManageTypes ? (
@@ -283,8 +305,28 @@ export function PolicyTypesPage() {
                               type="button"
                               size="sm"
                               variant="ghost"
+                              className="gap-1.5"
                               onClick={() => openEdit(type)}
                             >
+                              <svg
+                                viewBox="0 0 20 20"
+                                fill="none"
+                                aria-hidden
+                                className="h-3.5 w-3.5"
+                              >
+                                <path
+                                  d="M12.2 4.4 15.6 7.8 7.5 15.9H4.1v-3.4L12.2 4.4Z"
+                                  stroke="currentColor"
+                                  strokeWidth="1.5"
+                                  strokeLinejoin="round"
+                                />
+                                <path
+                                  d="M10.7 5.9 14.1 9.3"
+                                  stroke="currentColor"
+                                  strokeWidth="1.5"
+                                  strokeLinecap="round"
+                                />
+                              </svg>
                               Edit schema
                             </Button>
                           ) : null}

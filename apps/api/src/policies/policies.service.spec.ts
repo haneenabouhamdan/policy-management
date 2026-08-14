@@ -11,8 +11,10 @@ import { PoliciesService } from './policies.service';
 
 const actor = {
   id: 'user-1',
-  email: 'admin@local.dev',
+  email: 'maya.hassan@atomcover.com',
   role: UserRole.ADMIN,
+  tenantId: 'tenant-1',
+  tenantName: 'Atom Coverholder',
 };
 
 describe('PoliciesService', () => {
@@ -128,6 +130,7 @@ describe('PoliciesService', () => {
       select: jest.fn().mockReturnThis(),
       leftJoin: jest.fn().mockReturnThis(),
       addSelect: jest.fn().mockReturnThis(),
+      where: jest.fn().mockReturnThis(),
       orderBy: jest.fn().mockReturnThis(),
       skip: jest.fn().mockReturnThis(),
       take: jest.fn().mockReturnThis(),
@@ -138,17 +141,23 @@ describe('PoliciesService', () => {
     };
     policiesRepo.createQueryBuilder.mockReturnValue(qb);
 
-    const result = await service.findAll({
-      q: 'UAE%',
-      status: PolicyStatus.ACTIVE,
-      typeId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
-      attrKey: 'regions',
-      attrValue: 'UAE',
-      page: 2,
-      limit: 10,
-    });
+    const result = await service.findAll(
+      {
+        q: 'UAE%',
+        status: PolicyStatus.ACTIVE,
+        typeId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+        attrKey: 'regions',
+        attrValue: 'UAE',
+        page: 2,
+        limit: 10,
+      },
+      actor,
+    );
 
     expect(qb.select).toHaveBeenCalled();
+    expect(qb.where).toHaveBeenCalledWith('policy.tenantId = :tenantId', {
+      tenantId: actor.tenantId,
+    });
     expect(qb.skip).toHaveBeenCalledWith(10);
     expect(qb.take).toHaveBeenCalledWith(10);
     expect(qb.andWhere).toHaveBeenCalledWith(
@@ -182,6 +191,7 @@ describe('PoliciesService', () => {
       select: jest.fn().mockReturnThis(),
       leftJoin: jest.fn().mockReturnThis(),
       addSelect: jest.fn().mockReturnThis(),
+      where: jest.fn().mockReturnThis(),
       orderBy: jest.fn().mockReturnThis(),
       skip: jest.fn().mockReturnThis(),
       take: jest.fn().mockReturnThis(),
@@ -190,7 +200,10 @@ describe('PoliciesService', () => {
     };
     policiesRepo.createQueryBuilder.mockReturnValue(qb);
 
-    const result = await service.findAll({ staleSchema: true, page: 1, limit: 10 });
+    const result = await service.findAll(
+      { staleSchema: true, page: 1, limit: 10 },
+      actor,
+    );
 
     expect(qb.andWhere).toHaveBeenCalledWith(
       'policy.schemaVersion < type.schemaVersion',
@@ -200,7 +213,7 @@ describe('PoliciesService', () => {
 
   it('throws when a policy is missing', async () => {
     policiesRepo.findOne.mockResolvedValue(null);
-    await expect(service.findOne('missing')).rejects.toBeInstanceOf(
+    await expect(service.findOne('missing', actor)).rejects.toBeInstanceOf(
       NotFoundException,
     );
   });
@@ -280,7 +293,7 @@ describe('PoliciesService', () => {
     policiesRepo.findOne.mockResolvedValue({ id: 'policy-1' });
     eventsRepo.find.mockResolvedValue([{ id: 'evt-1' }]);
 
-    await expect(service.listEvents('policy-1')).resolves.toEqual([
+    await expect(service.listEvents('policy-1', actor)).resolves.toEqual([
       { id: 'evt-1' },
     ]);
     expect(eventsRepo.find).toHaveBeenCalledWith(
@@ -292,6 +305,7 @@ describe('PoliciesService', () => {
     const statusQb = {
       select: jest.fn().mockReturnThis(),
       addSelect: jest.fn().mockReturnThis(),
+      where: jest.fn().mockReturnThis(),
       groupBy: jest.fn().mockReturnThis(),
       getRawMany: jest.fn().mockResolvedValue([
         { status: PolicyStatus.DRAFT, count: '2' },
@@ -302,6 +316,7 @@ describe('PoliciesService', () => {
       innerJoin: jest.fn().mockReturnThis(),
       select: jest.fn().mockReturnThis(),
       addSelect: jest.fn().mockReturnThis(),
+      where: jest.fn().mockReturnThis(),
       groupBy: jest.fn().mockReturnThis(),
       addGroupBy: jest.fn().mockReturnThis(),
       orderBy: jest.fn().mockReturnThis(),
@@ -313,6 +328,7 @@ describe('PoliciesService', () => {
       innerJoin: jest.fn().mockReturnThis(),
       select: jest.fn().mockReturnThis(),
       where: jest.fn().mockReturnThis(),
+      andWhere: jest.fn().mockReturnThis(),
       getRawOne: jest.fn().mockResolvedValue({ count: '1' }),
     };
     policiesRepo.createQueryBuilder
@@ -320,7 +336,12 @@ describe('PoliciesService', () => {
       .mockReturnValueOnce(typeQb)
       .mockReturnValueOnce(staleQb);
 
-    const result = await service.summarize();
+    const result = await service.summarize(actor);
+
+    expect(statusQb.where).toHaveBeenCalledWith(
+      'policy.tenantId = :tenantId',
+      { tenantId: actor.tenantId },
+    );
 
     expect(result).toEqual({
       total: 7,
@@ -328,5 +349,76 @@ describe('PoliciesService', () => {
       byType: [{ id: 'type-1', name: 'Travel', count: 4 }],
       staleSchema: 1,
     });
+  });
+
+  it('does not return a policy from another tenant', async () => {
+    policiesRepo.findOne.mockResolvedValue(null);
+    await expect(service.findOne('policy-1', actor)).rejects.toBeInstanceOf(
+      NotFoundException,
+    );
+    expect(policiesRepo.findOne).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: 'policy-1', tenantId: actor.tenantId },
+      }),
+    );
+  });
+
+  it('reactivates an inactive policy when a reason is provided', async () => {
+    policiesRepo.findOne.mockResolvedValue({
+      id: 'policy-1',
+      status: PolicyStatus.INACTIVE,
+      type: { id: 'type-1' },
+    });
+
+    await service.updateStatus(
+      'policy-1',
+      {
+        status: PolicyStatus.ACTIVE,
+        reason: 'Premium paid and cover reinstated',
+      },
+      actor,
+    );
+
+    expect(policiesRepo.save).toHaveBeenCalledWith(
+      expect.objectContaining({ status: PolicyStatus.ACTIVE }),
+    );
+    expect(eventsRepo.save).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: PolicyEventType.STATUS_CHANGED,
+        payload: expect.objectContaining({
+          reason: 'Premium paid and cover reinstated',
+        }),
+      }),
+    );
+  });
+
+  it('duplicates a policy as a new draft in the same tenant', async () => {
+    policiesRepo.findOne.mockResolvedValue({
+      id: 'policy-1',
+      tenantId: actor.tenantId,
+      typeId: 'type-1',
+      name: 'Office Cover',
+      status: PolicyStatus.ACTIVE,
+      attributes: { coverageAmount: 100000 },
+      schemaVersion: 1,
+      type: { id: 'type-1' },
+    });
+
+    await service.duplicate('policy-1', actor);
+
+    expect(policiesRepo.save).toHaveBeenCalledWith(
+      expect.objectContaining({
+        tenantId: actor.tenantId,
+        typeId: 'type-1',
+        name: 'Office Cover (copy)',
+        status: PolicyStatus.DRAFT,
+      }),
+    );
+    expect(eventsRepo.save).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: PolicyEventType.CREATED,
+        payload: expect.objectContaining({ duplicatedFrom: 'policy-1' }),
+      }),
+    );
   });
 });

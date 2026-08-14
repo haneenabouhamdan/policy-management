@@ -2,17 +2,32 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  Index,
+  JoinColumn,
+  ManyToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
+import { Tenant } from './tenant.entity';
 import { UserRole } from './user-role.enum';
 
 @Entity({ name: 'users' })
+@Index('UQ_users_tenant_email', ['tenantId', 'email'], { unique: true })
 export class User {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
 
-  @Column({ type: 'varchar', length: 180, unique: true })
+  @Column({ name: 'tenant_id', type: 'uuid' })
+  tenantId!: string;
+
+  @ManyToOne(() => Tenant, (tenant) => tenant.users, {
+    onDelete: 'RESTRICT',
+    nullable: false,
+  })
+  @JoinColumn({ name: 'tenant_id' })
+  tenant!: Tenant;
+
+  @Column({ type: 'varchar', length: 180 })
   email!: string;
 
   @Column({ name: 'password_hash', type: 'varchar', length: 255 })

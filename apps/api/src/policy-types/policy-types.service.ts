@@ -28,22 +28,25 @@ export class PolicyTypesService {
     private readonly eventsRepo: Repository<PolicyTypeEvent>,
   ) {}
 
-  async findAll(): Promise<PolicyType[]> {
+  async findAll(actor: AuthUser): Promise<PolicyType[]> {
     return this.policyTypesRepo.find({
+      where: { tenantId: actor.tenantId },
       order: { name: 'ASC' },
     });
   }
 
-  async findOne(id: string): Promise<PolicyType> {
-    const policyType = await this.policyTypesRepo.findOne({ where: { id } });
+  async findOne(id: string, actor: AuthUser): Promise<PolicyType> {
+    const policyType = await this.policyTypesRepo.findOne({
+      where: { id, tenantId: actor.tenantId },
+    });
     if (!policyType) {
       throw new NotFoundException(`Policy type ${id} not found`);
     }
     return policyType;
   }
 
-  async listEvents(typeId: string): Promise<PolicyTypeEvent[]> {
-    await this.findOne(typeId);
+  async listEvents(typeId: string, actor: AuthUser): Promise<PolicyTypeEvent[]> {
+    await this.findOne(typeId, actor);
     return this.eventsRepo.find({
       where: { typeId },
       order: { createdAt: 'DESC' },
@@ -55,13 +58,14 @@ export class PolicyTypesService {
     const schema = this.parseSchema(dto.schema);
 
     const existing = await this.policyTypesRepo.findOne({
-      where: { name: dto.name.trim() },
+      where: { name: dto.name.trim(), tenantId: actor.tenantId },
     });
     if (existing) {
       throw new ConflictException('Policy type name already exists');
     }
 
     const entity = this.policyTypesRepo.create({
+      tenantId: actor.tenantId,
       name: dto.name.trim(),
       description: dto.description?.trim() ?? null,
       schema,
@@ -81,7 +85,7 @@ export class PolicyTypesService {
     dto: UpdatePolicyTypeDto,
     actor: AuthUser,
   ): Promise<PolicyType> {
-    const policyType = await this.findOne(id);
+    const policyType = await this.findOne(id, actor);
     const fromName = policyType.name;
     const fromDescription = policyType.description;
     const fromSchema = policyType.schema;
@@ -93,7 +97,7 @@ export class PolicyTypesService {
         throw new BadRequestException('Product name is required');
       }
       const clash = await this.policyTypesRepo.findOne({
-        where: { name, id: Not(id) },
+        where: { name, tenantId: actor.tenantId, id: Not(id) },
       });
       if (clash) {
         throw new ConflictException('Policy type name already exists');

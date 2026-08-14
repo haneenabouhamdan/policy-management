@@ -5,6 +5,7 @@ import { Policy } from '../entities/policy.entity';
 import { PolicyEvent } from '../entities/policy-event.entity';
 import { PolicyType } from '../entities/policy-type.entity';
 import { PolicyTypeEvent } from '../entities/policy-type-event.entity';
+import { Tenant } from '../entities/tenant.entity';
 import { User } from '../entities/user.entity';
 
 loadEnv({ path: resolve(process.cwd(), '../../.env') });
@@ -17,7 +18,7 @@ export default new DataSource({
   username: process.env.DB_USER ?? 'postgres',
   password: process.env.DB_PASSWORD ?? 'postgres',
   database: process.env.DB_NAME ?? 'policies',
-  entities: [PolicyType, Policy, PolicyEvent, PolicyTypeEvent, User],
+  entities: [Tenant, PolicyType, Policy, PolicyEvent, PolicyTypeEvent, User],
   migrations: [__dirname + '/migrations/*{.ts,.js}'],
   synchronize: false,
 });

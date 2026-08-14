@@ -9,8 +9,10 @@ import { PolicyTypesService } from './policy-types.service';
 
 const actor = {
   id: 'user-1',
-  email: 'admin@local.dev',
+  email: 'maya.hassan@atomcover.com',
   role: UserRole.ADMIN,
+  tenantId: 'tenant-1',
+  tenantName: 'Atom Coverholder',
 };
 
 describe('PolicyTypesService', () => {
@@ -191,7 +193,7 @@ describe('PolicyTypesService', () => {
 
   it('throws when a product is missing', async () => {
     repo.findOne.mockResolvedValue(null);
-    await expect(service.findOne('missing')).rejects.toBeInstanceOf(
+    await expect(service.findOne('missing', actor)).rejects.toBeInstanceOf(
       NotFoundException,
     );
   });
@@ -199,7 +201,7 @@ describe('PolicyTypesService', () => {
   it('lists product history', async () => {
     repo.findOne.mockResolvedValue({ id: 'type-1' });
     eventsRepo.find.mockResolvedValue([{ id: 'evt-1' }]);
-    await expect(service.listEvents('type-1')).resolves.toEqual([
+    await expect(service.listEvents('type-1', actor)).resolves.toEqual([
       { id: 'evt-1' },
     ]);
   });

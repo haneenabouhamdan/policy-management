@@ -30,30 +30,34 @@ describe('JwtStrategy', () => {
   it('returns the active user from the token subject', async () => {
     usersRepo.findOne.mockResolvedValue({
       id: 'user-1',
-      email: 'admin@local.dev',
+      email: 'maya.hassan@atomcover.com',
       role: UserRole.ADMIN,
       isActive: true,
+      tenantId: 'tenant-1',
+      tenant: { id: 'tenant-1', name: 'Atom Coverholder' },
     });
     const strategy = await createStrategy();
     await expect(
-      strategy.validate({ sub: 'user-1', email: 'admin@local.dev' }),
+      strategy.validate({ sub: 'user-1', email: 'maya.hassan@atomcover.com' }),
     ).resolves.toEqual({
       id: 'user-1',
-      email: 'admin@local.dev',
+      email: 'maya.hassan@atomcover.com',
       role: UserRole.ADMIN,
+      tenantId: 'tenant-1',
+      tenantName: 'Atom Coverholder',
     });
   });
 
   it('rejects inactive users', async () => {
     usersRepo.findOne.mockResolvedValue({
       id: 'user-1',
-      email: 'admin@local.dev',
+      email: 'maya.hassan@atomcover.com',
       role: UserRole.ADMIN,
       isActive: false,
     });
     const strategy = await createStrategy();
     await expect(
-      strategy.validate({ sub: 'user-1', email: 'admin@local.dev' }),
+      strategy.validate({ sub: 'user-1', email: 'maya.hassan@atomcover.com' }),
     ).rejects.toBeInstanceOf(UnauthorizedException);
   });
 });

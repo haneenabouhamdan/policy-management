@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useEffect, useMemo } from "react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { listPolicies, getPolicySummary } from "../api/policies";
 import { listPolicyTypes } from "../api/policy-types";
@@ -18,6 +18,12 @@ import type { PolicyField, PolicyStatus } from "../types/api";
 import { clampPage } from "../lib/clampPage";
 import { useDebouncedValue } from "../lib/useDebouncedValue";
 
+const STATUSES: PolicyStatus[] = ["DRAFT", "ACTIVE", "INACTIVE"];
+
+function isStatus(value: string | null): value is PolicyStatus {
+  return !!value && STATUSES.includes(value as PolicyStatus);
+}
+
 function filterableFields(fields: PolicyField[] | undefined) {
   return (fields || []).filter(
     (field) =>
@@ -29,14 +35,33 @@ function filterableFields(fields: PolicyField[] | undefined) {
 export function PolicyListPage() {
   const navigate = useNavigate();
   const { canWritePolicies } = useAuth();
-  const [q, setQ] = useState("");
-  const [typeId, setTypeId] = useState("");
-  const [status, setStatus] = useState<PolicyStatus | "">("");
-  const [attrKey, setAttrKey] = useState("");
-  const [attrValue, setAttrValue] = useState("");
-  const [staleSchema, setStaleSchema] = useState(false);
-  const [page, setPage] = useState(1);
+  const [params, setParams] = useSearchParams();
+
+  const q = params.get("q") ?? "";
+  const typeId = params.get("typeId") ?? "";
+  const rawStatus = params.get("status");
+  const status: PolicyStatus | "" = isStatus(rawStatus) ? rawStatus : "";
+  const attrKey = params.get("attrKey") ?? "";
+  const attrValue = params.get("attrValue") ?? "";
+  const staleSchema = params.get("staleSchema") === "true";
+  const page = Math.max(1, Number(params.get("page") || 1) || 1);
   const debouncedQ = useDebouncedValue(q, 300);
+
+  function patchFilters(
+    next: Record<string, string | number | boolean | null | undefined>,
+    resetPage = true,
+  ) {
+    const copy = new URLSearchParams(params);
+    for (const [key, value] of Object.entries(next)) {
+      if (value === null || value === undefined || value === "" || value === false) {
+        copy.delete(key);
+      } else {
+        copy.set(key, String(value));
+      }
+    }
+    if (resetPage) copy.delete("page");
+    setParams(copy, { replace: true });
+  }
 
   const typesQuery = useQuery({
     queryKey: ["policy-types"],
@@ -91,8 +116,9 @@ export function PolicyListPage() {
 
   useEffect(() => {
     if (totalPages > 0 && page > totalPages) {
-      setPage(clampPage(page, totalPages));
+      patchFilters({ page: clampPage(page, totalPages) }, false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, totalPages]);
 
   return (
@@ -118,18 +144,19 @@ export function PolicyListPage() {
           typeId={typeId}
           staleSchema={staleSchema}
           onStatus={(next) => {
-            setPage(1);
-            setStatus(next !== "" && status === next ? "" : next);
+            patchFilters({
+              status: next !== "" && status === next ? null : next || null,
+            });
           }}
           onType={(next) => {
-            setPage(1);
-            setTypeId(typeId === next ? "" : next);
-            setAttrKey("");
-            setAttrValue("");
+            patchFilters({
+              typeId: typeId === next ? null : next || null,
+              attrKey: null,
+              attrValue: null,
+            });
           }}
           onStale={() => {
-            setPage(1);
-            setStaleSchema(!staleSchema);
+            patchFilters({ staleSchema: staleSchema ? null : true });
           }}
         />
       ) : null}
@@ -141,8 +168,7 @@ export function PolicyListPage() {
             placeholder="Name or attribute…"
             value={q}
             onChange={(e) => {
-              setPage(1);
-              setQ(e.target.value);
+              patchFilters({ q: e.target.value || null });
             }}
           />
         </div>
@@ -152,9 +178,10 @@ export function PolicyListPage() {
               label="Filter field"
               value={activeAttrField?.key || ""}
               onChange={(e) => {
-                setPage(1);
-                setAttrKey(e.target.value);
-                setAttrValue("");
+                patchFilters({
+                  attrKey: e.target.value || null,
+                  attrValue: null,
+                });
               }}
               options={attributeFields.map((field) => ({
                 value: field.key,
@@ -170,10 +197,10 @@ export function PolicyListPage() {
               placeholder={`All ${activeAttrField?.label || "values"}`}
               value={attrValue}
               onChange={(e) => {
-                setPage(1);
-                if (!attrKey && activeAttrField)
-                  setAttrKey(activeAttrField.key);
-                setAttrValue(e.target.value);
+                patchFilters({
+                  attrKey: attrKey || activeAttrField?.key || null,
+                  attrValue: e.target.value || null,
+                });
               }}
               options={(activeAttrField?.options || []).map((option) => ({
                 value: option,
@@ -186,13 +213,7 @@ export function PolicyListPage() {
           variant="secondary"
           disabled={!hasFilters}
           onClick={() => {
-            setQ("");
-            setTypeId("");
-            setStatus("");
-            setAttrKey("");
-            setAttrValue("");
-            setStaleSchema(false);
-            setPage(1);
+            setParams(new URLSearchParams(), { replace: true });
           }}
         >
           Clear filters
@@ -263,7 +284,9 @@ export function PolicyListPage() {
               page={policiesQuery.data.meta.page}
               totalPages={policiesQuery.data.meta.totalPages}
               total={policiesQuery.data.meta.total}
-              onPageChange={setPage}
+              onPageChange={(nextPage) =>
+                patchFilters({ page: nextPage > 1 ? nextPage : null }, false)
+              }
             />
           </div>
         </div>

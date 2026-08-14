@@ -45,16 +45,16 @@ export class PoliciesController {
   @Roles(UserRole.ADMIN, UserRole.UNDERWRITER, UserRole.VIEWER)
   @ApiOperation({ summary: 'Search and list policies' })
   @ApiOkResponse({ type: PaginatedPoliciesResponseDto })
-  findAll(@Query() query: ListPoliciesQueryDto) {
-    return this.policiesService.findAll(query);
+  findAll(@Query() query: ListPoliciesQueryDto, @CurrentUser() actor: AuthUser) {
+    return this.policiesService.findAll(query, actor);
   }
 
   @Get('summary')
   @Roles(UserRole.ADMIN, UserRole.UNDERWRITER, UserRole.VIEWER)
   @ApiOperation({ summary: 'Book-of-business counts by status and product' })
   @ApiOkResponse({ type: PolicySummaryDto })
-  summarize() {
-    return this.policiesService.summarize();
+  summarize(@CurrentUser() actor: AuthUser) {
+    return this.policiesService.summarize(actor);
   }
 
   @Get(':id/events')
@@ -62,8 +62,11 @@ export class PoliciesController {
   @ApiOperation({ summary: 'List recent activity for a policy' })
   @ApiParam({ name: 'id', format: 'uuid' })
   @ApiOkResponse({ type: [PolicyEventResponseDto] })
-  listEvents(@Param('id', ParseUUIDPipe) id: string) {
-    return this.policiesService.listEvents(id);
+  listEvents(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() actor: AuthUser,
+  ) {
+    return this.policiesService.listEvents(id, actor);
   }
 
   @Get(':id')
@@ -71,8 +74,11 @@ export class PoliciesController {
   @ApiOperation({ summary: 'Get a policy by id' })
   @ApiParam({ name: 'id', format: 'uuid' })
   @ApiOkResponse({ type: PolicyResponseDto })
-  findOne(@Param('id', ParseUUIDPipe) id: string) {
-    return this.policiesService.findOne(id);
+  findOne(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() actor: AuthUser,
+  ) {
+    return this.policiesService.findOne(id, actor);
   }
 
   @Post()
@@ -83,6 +89,20 @@ export class PoliciesController {
   @ApiCreatedResponse({ type: PolicyResponseDto })
   create(@Body() dto: CreatePolicyDto, @CurrentUser() actor: AuthUser) {
     return this.policiesService.create(dto, actor);
+  }
+
+  @Post(':id/duplicate')
+  @HttpCode(HttpStatus.CREATED)
+  @Roles(UserRole.ADMIN, UserRole.UNDERWRITER)
+  @Throttle({ default: { limit: 30, ttl: 60_000 } })
+  @ApiOperation({ summary: 'Clone a policy as a new draft' })
+  @ApiParam({ name: 'id', format: 'uuid' })
+  @ApiCreatedResponse({ type: PolicyResponseDto })
+  duplicate(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() actor: AuthUser,
+  ) {
+    return this.policiesService.duplicate(id, actor);
   }
 
   @Patch(':id')

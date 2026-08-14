@@ -18,7 +18,15 @@ describe('policy status transitions', () => {
     ).not.toThrow();
   });
 
-  it('blocks inactive to active', () => {
+  it('allows inactive to active with a reason', () => {
+    expect(() =>
+      assertStatusTransition(PolicyStatus.INACTIVE, PolicyStatus.ACTIVE, {
+        reason: 'Premium collected and cover reinstated',
+      }),
+    ).not.toThrow();
+  });
+
+  it('blocks inactive to active without a reason', () => {
     expect(() =>
       assertStatusTransition(PolicyStatus.INACTIVE, PolicyStatus.ACTIVE),
     ).toThrow(BadRequestException);
