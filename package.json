@@ -11,7 +11,7 @@
     "dev:web": "pnpm --filter @policy-management/web dev",
     "build": "pnpm -r run build",
     "lint": "pnpm -r run lint",
-    "db:up": "docker compose up -d",
+    "db:up": "docker compose up -d postgres",
     "db:down": "docker compose down",
     "db:logs": "docker compose logs -f postgres",
     "seed": "pnpm --filter @policy-management/api seed"

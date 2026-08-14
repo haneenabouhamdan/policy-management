@@ -9,32 +9,22 @@ Products define a JSON schema. Policies store attributes against that schema, so
 
 ## Requirements
 
-- Node 20+
-- pnpm 9+
-- Docker
+- Docker (Compose v2)
 
-Postgres is on host port `5433` (see `.env`).
-
-## Setup
+## Run
 
 ```bash
 cp .env.example .env
-pnpm install
-pnpm db:up
-pnpm --filter @policy-management/api migration:run
-pnpm seed
+docker compose up --build
 ```
 
-## Develop
-
-```bash
-pnpm dev:api
-pnpm dev:web
-```
-
+- App: http://localhost:5173
 - API: http://localhost:3000
 - Swagger: http://localhost:3000/docs
-- Web: http://localhost:5173
+
+Compose starts Postgres, the API, and the web app. On first boot the API runs migrations and seeds products, policies, and local users.
+
+Stop with Ctrl+C, or run `docker compose up --build -d` to start in the background.
 
 ## Local users
 
@@ -67,6 +57,22 @@ Swagger: `POST /auth/login`, then Authorize with `accessToken`.
 | GET/PATCH | `/policies/:id` | Detail / update |
 | PATCH | `/policies/:id/status` | Status transition |
 | GET | `/policies/:id/events` | Activity timeline |
+
+## Local development
+
+Node 20+, pnpm 9+, and Docker (for Postgres only):
+
+```bash
+cp .env.example .env
+pnpm install
+pnpm db:up
+pnpm --filter @policy-management/api migration:run
+pnpm seed
+pnpm dev:api
+pnpm dev:web
+```
+
+Postgres is on host port `5433` (see `.env`).
 
 ## Tests
 
