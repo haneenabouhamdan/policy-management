@@ -46,20 +46,20 @@ Each login is scoped to one tenant. Pick the MGA (slug) on the sign-in screen so
 
 **Atom Coverholder** (`atom`)
 
-| Email | Password | Role |
-|-------|----------|------|
-| maya.hassan@atomcover.com | Admin123! | ADMIN |
+| Email                     | Password        | Role        |
+| ------------------------- | --------------- | ----------- |
+| maya.hassan@atomcover.com | Admin123!       | ADMIN       |
 | omar.khalil@atomcover.com | Underwriter123! | UNDERWRITER |
-| lina.farhat@atomcover.com | Viewer123! | VIEWER |
-| alex.rivera@example.com | Underwriter123! | UNDERWRITER |
+| lina.farhat@atomcover.com | Viewer123!      | VIEWER      |
+| alex.rivera@example.com   | Underwriter123! | UNDERWRITER |
 
 **Northwind MGA** (`northwind`)
 
-| Email | Password | Role |
-|-------|----------|------|
-| james.okonkwo@northwindmga.com | Admin123! | ADMIN |
-| priya.shah@northwindmga.com | Underwriter123! | UNDERWRITER |
-| alex.rivera@example.com | Underwriter123! | UNDERWRITER |
+| Email                          | Password        | Role        |
+| ------------------------------ | --------------- | ----------- |
+| james.okonkwo@northwindmga.com | Admin123!       | ADMIN       |
+| priya.shah@northwindmga.com    | Underwriter123! | UNDERWRITER |
+| alex.rivera@example.com        | Underwriter123! | UNDERWRITER |
 
 `alex.rivera@example.com` is the same address in both MGAs; the slug decides which book you open.
 
@@ -130,15 +130,14 @@ Postgres is on host port `5433` (see `.env`).
 
 ## Trade-offs considered
 
-| Choice | Instead of | Why |
-|--------|------------|-----|
-| JSONB attributes | Extra columns or EAV | New products/fields without migrations; typed SQL filters still possible via `@>` |
-| Denormalized `search_text` | Searching JSONB on every list | Keeps the hot path indexed and avoids loading attributes |
-| Keyset pagination | Offset (`page` / `totalPages`) | Stable under inserts; no `COUNT(*)` on the hot list |
-| Shared schema + RLS | Separate databases per MGA | One compose stack, two demo MGAs, and a missed `WHERE` still cannot leak rows |
-| JWT seeded users | Cognito / SSO | Fits a 2–3 day slice; an IdP is the regulated-ops path |
-| Version stamp + banner | Auto-migrate old policies | Honest about schema drift; no silent data rewrite |
-| REST + OpenAPI | GraphQL | Matches the brief; Swagger is enough for the 1:1 |
+| Choice                     | Instead of                     | Why                                                                               |
+| -------------------------- | ------------------------------ | --------------------------------------------------------------------------------- |
+| JSONB attributes           | Extra columns or EAV           | New products/fields without migrations; typed SQL filters still possible via `@>` |
+| Denormalized `search_text` | Searching JSONB on every list  | Keeps the hot path indexed and avoids loading attributes                          |
+| Keyset pagination          | Offset (`page` / `totalPages`) | Stable under inserts; no `COUNT(*)` on the hot list                               |
+| Shared schema + RLS        | Separate databases per MGA     | One compose stack, two demo MGAs, and a missed `WHERE` still cannot leak rows     |
+| JWT seeded users           | Cognito / SSO                  | Fits a 2–3 day slice; an IdP is the regulated-ops path                            |
+| Version stamp + banner     | Auto-migrate old policies      | Honest about schema drift; no silent data rewrite                                 |
 
 ## What I would do with more time
 
