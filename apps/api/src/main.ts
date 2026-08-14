@@ -31,7 +31,18 @@ async function bootstrap() {
     .setVersion('0.1.0')
     .addBearerAuth()
     .build();
-  SwaggerModule.setup('docs', app, SwaggerModule.createDocument(app, swagger));
+
+  const document = SwaggerModule.createDocument(app, swagger, {
+    operationIdFactory: (_controllerKey: string, methodKey: string) =>
+      methodKey,
+  });
+
+  // Drop unused empty schemas the plugin may emit for transformed primitives.
+  if (document.components?.schemas?.Object) {
+    delete document.components.schemas.Object;
+  }
+
+  SwaggerModule.setup('docs', app, document);
 
   const port = config.get<number>('API_PORT') ?? 3000;
   await app.listen(port);

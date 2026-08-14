@@ -10,12 +10,23 @@ import {
   Post,
   Query,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiCreatedResponse,
+  ApiOkResponse,
+  ApiOperation,
+  ApiParam,
+  ApiTags,
+} from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { UserRole } from '../entities/user-role.enum';
 import { CreatePolicyDto } from './dto/create-policy.dto';
 import { ListPoliciesQueryDto } from './dto/list-policies-query.dto';
+import {
+  PaginatedPoliciesResponseDto,
+  PolicyResponseDto,
+} from './dto/policy-response.dto';
 import { UpdatePolicyDto } from './dto/update-policy.dto';
 import { UpdatePolicyStatusDto } from './dto/update-policy-status.dto';
 import { PoliciesService } from './policies.service';
@@ -28,12 +39,17 @@ export class PoliciesController {
 
   @Get()
   @Roles(UserRole.ADMIN, UserRole.UNDERWRITER, UserRole.VIEWER)
+  @ApiOperation({ summary: 'Search and list policies' })
+  @ApiOkResponse({ type: PaginatedPoliciesResponseDto })
   findAll(@Query() query: ListPoliciesQueryDto) {
     return this.policiesService.findAll(query);
   }
 
   @Get(':id')
   @Roles(UserRole.ADMIN, UserRole.UNDERWRITER, UserRole.VIEWER)
+  @ApiOperation({ summary: 'Get a policy by id' })
+  @ApiParam({ name: 'id', format: 'uuid' })
+  @ApiOkResponse({ type: PolicyResponseDto })
   findOne(@Param('id', ParseUUIDPipe) id: string) {
     return this.policiesService.findOne(id);
   }
@@ -42,6 +58,8 @@ export class PoliciesController {
   @HttpCode(HttpStatus.CREATED)
   @Roles(UserRole.ADMIN, UserRole.UNDERWRITER)
   @Throttle({ default: { limit: 30, ttl: 60_000 } })
+  @ApiOperation({ summary: 'Create a draft policy' })
+  @ApiCreatedResponse({ type: PolicyResponseDto })
   create(@Body() dto: CreatePolicyDto) {
     return this.policiesService.create(dto);
   }
@@ -49,6 +67,9 @@ export class PoliciesController {
   @Patch(':id')
   @Roles(UserRole.ADMIN, UserRole.UNDERWRITER)
   @Throttle({ default: { limit: 60, ttl: 60_000 } })
+  @ApiOperation({ summary: 'Update policy name or attributes' })
+  @ApiParam({ name: 'id', format: 'uuid' })
+  @ApiOkResponse({ type: PolicyResponseDto })
   update(@Param('id', ParseUUIDPipe) id: string, @Body() dto: UpdatePolicyDto) {
     return this.policiesService.update(id, dto);
   }
@@ -56,6 +77,9 @@ export class PoliciesController {
   @Patch(':id/status')
   @Roles(UserRole.ADMIN, UserRole.UNDERWRITER)
   @Throttle({ default: { limit: 30, ttl: 60_000 } })
+  @ApiOperation({ summary: 'Transition policy status' })
+  @ApiParam({ name: 'id', format: 'uuid' })
+  @ApiOkResponse({ type: PolicyResponseDto })
   updateStatus(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdatePolicyStatusDto,
