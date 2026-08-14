@@ -47,8 +47,6 @@ Each login is scoped to one tenant. Pick the MGA (slug) on the sign-in screen so
 - `UNDERWRITER` — create / edit / status-change policies
 - `VIEWER` — read only
 
-Swagger: `POST /auth/login` with `tenantSlug`, then Authorize with `accessToken`.
-
 The API connects as a non-superuser (`policy_app`) so Postgres row-level security is actually enforced. Migrations and seed still run as `postgres` (`DB_ADMIN_USER`).
 
 Tests (needs Node 20+ and pnpm 9+):
@@ -128,20 +126,8 @@ Postgres is on host port `5433` (see `.env`).
 - Issued policy documents (letterhead, versioning, e-sign) rather than the working-copy snapshot PDF.
 - Out of scope on purpose: rating, claims, documents, email, bordereaux.
 
-## API
+## Swagger
 
-| Method | Path | Description |
-|--------|------|-------------|
-| GET | `/auth/tenants` | Tenant slugs and names for login |
-| POST | `/auth/login` | Login (`tenantSlug`, email, password) |
-| GET | `/auth/me` | Current user |
-| GET | `/health` | Health check |
-| GET/POST | `/policy-types` | List / create product schemas |
-| GET/PATCH | `/policy-types/:id` | Type detail / update |
-| GET | `/policy-types/:id/events` | Product edit history |
-| GET | `/policies/summary` | Counts by status / product / stale schema |
-| GET/POST | `/policies` | List (`q`, `typeId`, `status`, `attrKey`/`attrValue`, `staleSchema`, `after`, `limit`) / create |
-| POST | `/policies/:id/duplicate` | Clone as a new draft |
-| GET/PATCH | `/policies/:id` | Detail / update |
-| PATCH | `/policies/:id/status` | Status transition (`INACTIVE → ACTIVE` needs `reason`) |
-| GET | `/policies/:id/events` | Activity timeline |
+API routes and schemas: http://localhost:3000/docs
+
+`POST /auth/login` with `tenantSlug`, then Authorize with `accessToken`.
