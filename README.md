@@ -1,6 +1,6 @@
 # Policy Management
 
-Monorepo for a configurable policy management app.
+Products define a JSON schema. Policies store attributes against that schema, so a new product or field does not need a new screen or migration.
 
 ## Apps
 
@@ -13,7 +13,7 @@ Monorepo for a configurable policy management app.
 - pnpm 9+
 - Docker
 
-Postgres is exposed on host port `5433` (see `.env`).
+Postgres is on host port `5433` (see `.env`).
 
 ## Setup
 
@@ -22,6 +22,7 @@ cp .env.example .env
 pnpm install
 pnpm db:up
 pnpm --filter @policy-management/api migration:run
+pnpm seed
 ```
 
 ## Develop
@@ -35,11 +36,9 @@ pnpm dev:web
 - Swagger: http://localhost:3000/docs
 - Web: http://localhost:5173
 
-## Auth
+## Local users
 
-JWT bearer auth. Roles: `ADMIN`, `UNDERWRITER`, `VIEWER`.
-
-Default users (seeded on first boot if the users table is empty):
+Seeded on first boot if the users table is empty:
 
 | Email | Password | Role |
 |-------|----------|------|
@@ -47,7 +46,11 @@ Default users (seeded on first boot if the users table is empty):
 | underwriter@local.dev | Underwriter123! | UNDERWRITER |
 | viewer@local.dev | Viewer123! | VIEWER |
 
-In Swagger: `POST /auth/login` → Authorize with the returned `accessToken`.
+- `ADMIN` — policies and products
+- `UNDERWRITER` — create / edit / status-change policies
+- `VIEWER` — read only
+
+Swagger: `POST /auth/login`, then Authorize with `accessToken`.
 
 ## API
 
@@ -57,13 +60,23 @@ In Swagger: `POST /auth/login` → Authorize with the returned `accessToken`.
 | GET | `/auth/me` | Current user |
 | GET | `/health` | Health check |
 | GET/POST | `/policy-types` | List / create product schemas |
-| GET | `/policy-types/:id` | Type detail |
-| GET/POST | `/policies` | List (search/filter) / create |
+| GET/PATCH | `/policy-types/:id` | Type detail / update |
+| GET | `/policy-types/:id/events` | Product edit history |
+| GET | `/policies/summary` | Counts by status / product / stale schema |
+| GET/POST | `/policies` | List (`q`, `typeId`, `status`, `attrKey`/`attrValue`, `staleSchema`) / create |
 | GET/PATCH | `/policies/:id` | Detail / update |
 | PATCH | `/policies/:id/status` | Status transition |
+| GET | `/policies/:id/events` | Activity timeline |
 
 ## Tests
 
 ```bash
 pnpm --filter @policy-management/api test
 ```
+
+## Notes
+
+- Product schema version is the current form. Each policy stores the version it was saved against.
+- Status: `DRAFT → ACTIVE → INACTIVE` (also `DRAFT → INACTIVE`).
+- List search uses `search_text` + `pg_trgm`. Attribute filters use JSONB `@>`.
+- Pagination is offset-based (`limit` max 100). List queries do not load `attributes`.

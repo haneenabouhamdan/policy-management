@@ -13,6 +13,7 @@
     "lint": "pnpm -r run lint",
     "db:up": "docker compose up -d",
     "db:down": "docker compose down",
-    "db:logs": "docker compose logs -f postgres"
+    "db:logs": "docker compose logs -f postgres",
+    "seed": "pnpm --filter @policy-management/api seed"
   }
 }

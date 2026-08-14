@@ -277,6 +277,7 @@ const POLICIES: PolicySeed[] = [
 
 async function seed() {
   await dataSource.initialize();
+  await dataSource.runMigrations();
   const typesRepo = dataSource.getRepository(PolicyType);
   const policiesRepo = dataSource.getRepository(Policy);
 

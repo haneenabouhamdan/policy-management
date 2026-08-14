@@ -18,6 +18,6 @@ export default new DataSource({
   password: process.env.DB_PASSWORD ?? 'postgres',
   database: process.env.DB_NAME ?? 'policies',
   entities: [PolicyType, Policy, PolicyEvent, PolicyTypeEvent, User],
-  migrations: ['src/database/migrations/*{.ts,.js}'],
+  migrations: [__dirname + '/migrations/*{.ts,.js}'],
   synchronize: false,
 });
