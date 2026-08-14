@@ -16,6 +16,7 @@ import { LoginDto } from './dto/login.dto';
 @Injectable()
 export class AuthService implements OnModuleInit {
   private readonly logger = new Logger(AuthService.name);
+  private dummyPasswordHash?: string;
 
   constructor(
     @InjectRepository(User)
@@ -68,13 +69,10 @@ export class AuthService implements OnModuleInit {
   async login(dto: LoginDto) {
     const email = dto.email.trim().toLowerCase();
     const user = await this.usersRepo.findOne({ where: { email } });
+    const passwordHash = user?.passwordHash ?? (await this.getDummyHash());
+    const valid = await bcrypt.compare(dto.password, passwordHash);
 
-    if (!user || !user.isActive) {
-      throw new UnauthorizedException('Invalid email or password');
-    }
-
-    const valid = await bcrypt.compare(dto.password, user.passwordHash);
-    if (!valid) {
+    if (!user || !user.isActive || !valid) {
       throw new UnauthorizedException('Invalid email or password');
     }
 
@@ -108,5 +106,12 @@ export class AuthService implements OnModuleInit {
       fullName: user.fullName,
       role: user.role,
     };
+  }
+
+  private async getDummyHash() {
+    if (!this.dummyPasswordHash) {
+      this.dummyPasswordHash = await bcrypt.hash('invalid-password', 12);
+    }
+    return this.dummyPasswordHash;
   }
 }

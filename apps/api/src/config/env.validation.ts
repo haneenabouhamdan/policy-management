@@ -5,6 +5,7 @@ import {
   IsString,
   Max,
   Min,
+  MinLength,
   validateSync,
 } from 'class-validator';
 
@@ -51,6 +52,7 @@ class EnvironmentVariables {
   THROTTLE_LIMIT?: number;
 
   @IsString()
+  @MinLength(16)
   JWT_SECRET!: string;
 
   @IsOptional()

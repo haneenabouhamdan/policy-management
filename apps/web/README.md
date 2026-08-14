@@ -1,6 +1,6 @@
 # Web
 
-React (Vite) client for policy management.
+React (Vite) client. Forms and read views are schema-driven. System design: [docs/ARCHITECTURE.md](../../docs/ARCHITECTURE.md).
 
 ```bash
 pnpm --filter @policy-management/web dev

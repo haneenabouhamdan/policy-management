@@ -1,27 +1,35 @@
-import { Link, Route, Routes } from 'react-router-dom';
-
-function HomePage() {
-  return (
-    <main className="mx-auto max-w-5xl px-6 py-10">
-      <h1 className="text-2xl font-semibold tracking-tight">Policies</h1>
-      <p className="mt-2 text-sm text-gray-600">No policies to show yet.</p>
-    </main>
-  );
-}
+import { Navigate, Route, Routes } from "react-router-dom";
+import { AuthProvider } from "./auth/AuthContext";
+import { RequireAuth } from "./auth/RequireAuth";
+import { AppShell } from "./components/layout/AppShell";
+import { LoginPage } from "./pages/LoginPage";
+import { PolicyCreatePage } from "./pages/PolicyCreatePage";
+import { PolicyDetailPage } from "./pages/PolicyDetailPage";
+import { PolicyEditPage } from "./pages/PolicyEditPage";
+import { PolicyListPage } from "./pages/PolicyListPage";
+import { PolicyTypesPage } from "./pages/PolicyTypesPage";
 
 export default function App() {
   return (
-    <div className="min-h-screen">
-      <header className="border-b border-gray-200 bg-white">
-        <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-4">
-          <Link to="/" className="text-sm font-semibold tracking-tight">
-            Policy Management
-          </Link>
-        </div>
-      </header>
+    <AuthProvider>
       <Routes>
-        <Route path="/" element={<HomePage />} />
+        <Route path="/login" element={<LoginPage />} />
+        <Route
+          element={
+            <RequireAuth>
+              <AppShell />
+            </RequireAuth>
+          }
+        >
+          <Route path="/" element={<Navigate to="/policies" replace />} />
+          <Route path="/policies" element={<PolicyListPage />} />
+          <Route path="/policies/new" element={<PolicyCreatePage />} />
+          <Route path="/policies/:id" element={<PolicyDetailPage />} />
+          <Route path="/policies/:id/edit" element={<PolicyEditPage />} />
+          <Route path="/policy-types" element={<PolicyTypesPage />} />
+        </Route>
+        <Route path="*" element={<Navigate to="/policies" replace />} />
       </Routes>
-    </div>
+    </AuthProvider>
   );
 }

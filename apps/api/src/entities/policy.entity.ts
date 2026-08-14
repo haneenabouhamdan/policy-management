@@ -14,7 +14,7 @@ import { PolicyStatus } from './policy-status.enum';
 @Entity({ name: 'policies' })
 @Index('IDX_policies_status', ['status'])
 @Index('IDX_policies_type_status', ['typeId', 'status'])
-@Index('IDX_policies_search_text', ['searchText'])
+@Index('IDX_policies_updated_at', ['updatedAt'])
 export class Policy {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
