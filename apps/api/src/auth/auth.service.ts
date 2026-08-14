@@ -12,6 +12,7 @@ import { Repository } from 'typeorm';
 import { Tenant } from '../entities/tenant.entity';
 import { User } from '../entities/user.entity';
 import { UserRole } from '../entities/user-role.enum';
+import { runWithTenant } from '../common/request-context';
 import { LoginDto } from './dto/login.dto';
 
 type SeedUser = {
@@ -44,6 +45,12 @@ const ATOM_USERS: SeedUser[] = [
     password: 'Viewer123!',
     aliases: ['viewer@local.dev'],
   },
+  {
+    email: 'alex.rivera@example.com',
+    fullName: 'Alex Rivera',
+    role: UserRole.UNDERWRITER,
+    password: 'Underwriter123!',
+  },
 ];
 
 const NORTHWIND_USERS: SeedUser[] = [
@@ -60,6 +67,12 @@ const NORTHWIND_USERS: SeedUser[] = [
     role: UserRole.UNDERWRITER,
     password: 'Underwriter123!',
     aliases: ['underwriter@northwind.local'],
+  },
+  {
+    email: 'alex.rivera@example.com',
+    fullName: 'Alex Rivera',
+    role: UserRole.UNDERWRITER,
+    password: 'Underwriter123!',
   },
 ];
 
@@ -82,13 +95,25 @@ export class AuthService implements OnModuleInit {
     await this.seedUsersForSlug('northwind', NORTHWIND_USERS);
   }
 
+  async listTenants() {
+    return this.tenantsRepo.find({
+      select: { slug: true, name: true },
+      order: { name: 'ASC' },
+    });
+  }
+
   async login(dto: LoginDto) {
     const email = dto.email.trim().toLowerCase();
-    const matches = await this.usersRepo.find({
-      where: { email },
-      relations: { tenant: true },
-    });
-    const user = matches.length === 1 ? matches[0] : undefined;
+    const slug = dto.tenantSlug.trim().toLowerCase();
+    const tenant = await this.tenantsRepo.findOne({ where: { slug } });
+    const user = tenant
+      ? await runWithTenant(tenant.id, () =>
+          this.usersRepo.findOne({
+            where: { email, tenantId: tenant.id },
+            relations: { tenant: true },
+          }),
+        )
+      : null;
     const passwordHash = user?.passwordHash ?? (await this.getDummyHash());
     const valid = await bcrypt.compare(dto.password, passwordHash);
 
@@ -130,6 +155,7 @@ export class AuthService implements OnModuleInit {
       role: user.role,
       tenantId: user.tenantId,
       tenantName: user.tenant.name,
+      tenantSlug: user.tenant.slug,
     };
   }
 
@@ -137,6 +163,10 @@ export class AuthService implements OnModuleInit {
     const tenant = await this.tenantsRepo.findOne({ where: { slug } });
     if (!tenant) return;
 
+    await runWithTenant(tenant.id, () => this.seedUsers(tenant, defaults));
+  }
+
+  private async seedUsers(tenant: Tenant, defaults: SeedUser[]) {
     let created = 0;
     let renamed = 0;
 
@@ -184,7 +214,7 @@ export class AuthService implements OnModuleInit {
 
     if (created > 0 || renamed > 0) {
       this.logger.log(
-        `Demo users for ${slug}: created ${created}, renamed ${renamed}`,
+        `Demo users for ${tenant.slug}: created ${created}, renamed ${renamed}`,
       );
     }
   }

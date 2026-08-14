@@ -22,28 +22,34 @@ Compose starts Postgres, the API, and the web app. On first boot the API runs mi
 
 Stop with Ctrl+C, or run `docker compose up --build -d` to start in the background.
 
-Each login is scoped to one tenant. Atom Coverholder is the original book; Northwind MGA is a second tenant so isolation is easy to check.
+Each login is scoped to one tenant. Pick the MGA (slug) on the sign-in screen so the same email can exist in two books. Atom Coverholder is the original book; Northwind MGA is a second tenant so isolation is easy to check.
 
-**Atom Coverholder**
+**Atom Coverholder** (`atom`)
 
 | Email | Password | Role |
 |-------|----------|------|
 | maya.hassan@atomcover.com | Admin123! | ADMIN |
 | omar.khalil@atomcover.com | Underwriter123! | UNDERWRITER |
 | lina.farhat@atomcover.com | Viewer123! | VIEWER |
+| alex.rivera@example.com | Underwriter123! | UNDERWRITER |
 
-**Northwind MGA**
+**Northwind MGA** (`northwind`)
 
 | Email | Password | Role |
 |-------|----------|------|
 | james.okonkwo@northwindmga.com | Admin123! | ADMIN |
 | priya.shah@northwindmga.com | Underwriter123! | UNDERWRITER |
+| alex.rivera@example.com | Underwriter123! | UNDERWRITER |
+
+`alex.rivera@example.com` is the same address in both MGAs; the slug decides which book you open.
 
 - `ADMIN` — policies and products
 - `UNDERWRITER` — create / edit / status-change policies
 - `VIEWER` — read only
 
-Swagger: `POST /auth/login`, then Authorize with `accessToken`.
+Swagger: `POST /auth/login` with `tenantSlug`, then Authorize with `accessToken`.
+
+The API connects as a non-superuser (`policy_app`) so Postgres row-level security is actually enforced. Migrations and seed still run as `postgres` (`DB_ADMIN_USER`).
 
 Tests (needs Node 20+ and pnpm 9+):
 
@@ -51,6 +57,13 @@ Tests (needs Node 20+ and pnpm 9+):
 pnpm install
 pnpm --filter @policy-management/api test
 pnpm --filter @policy-management/web test
+```
+
+Browser path against a running stack (Docker or local):
+
+```bash
+pnpm --filter @policy-management/web exec playwright install chromium
+pnpm test:e2e
 ```
 
 Local development without containerizing the app (Docker still used for Postgres):
@@ -69,7 +82,7 @@ Postgres is on host port `5433` (see `.env`).
 
 ## Key design decisions
 
-**Product schema vs policy instance.** A `PolicyType` owns the field definition (`schema` JSONB). A `Policy` is one filled-in instance (`attributes` JSONB) plus status. Travel, Property, Membership, and Cargo are seed data, not dedicated tables or screens. The same `SchemaForm` / `SchemaReadView` render whatever the product says.
+**Product schema vs policy instance.** A `PolicyType` owns the field definition (`schema` JSONB). A `Policy` is one filled-in instance (`attributes` JSONB) plus status. Travel, Property, Membership, and Cargo are seed data, not dedicated tables or screens. The same `SchemaForm` / `SchemaReadView` render whatever the product says. The read view also shows constraint hints (required, min/max, allowed values). Detail can export a working-copy PDF of every schema field, including blanks, so a missing value is visible; it is not a legal document.
 
 **Hybrid Postgres model.** Identity, status, timestamps, and tenant stay as columns. Product-specific fields stay in JSONB. A column per field would need a migration for every product change. An EAV table makes filtering and reporting awkward.
 
@@ -83,16 +96,18 @@ Postgres is on host port `5433` (see `.env`).
 
 **JWT + three roles.** Viewers read, underwriters write policies, admins also manage products. Writes are throttled. Cross-tenant ids return 404, not 403, so existence is not leaked.
 
-**Shared-schema multi-tenancy.** `tenant_id` on users, products, and policies. The JWT tenant comes from the user row. Unique names and emails are per tenant.
+**Shared-schema multi-tenancy.** `tenant_id` on users, products, and policies. Login requires a tenant slug. The JWT tenant comes from the user row. Unique names and emails are per tenant. Postgres RLS (`SET` `app.tenant_id` on the pooled connection) is a second layer so a missed `WHERE` cannot leak rows. The `tenants` table is not RLS-gated so slug lookup still works.
+
+**Keyset list pagination.** Policy lists page with `after` (`updatedAt` + `id`), not offsets. Each response includes `nextCursor` and `hasMore`. HTTP logs are JSON with `requestId`, method, path, status, duration, and `tenantId`. Pass or receive `X-Request-Id`.
 
 ## Assumptions
 
 - This is an internal ops workbench (MGA / coverholder), not a consumer quote site.
-- One user belongs to one tenant. Demo emails are globally distinct, so login is email + password with no tenant slug.
+- One user belongs to one tenant. The same email can exist in two MGAs; login always includes a slug.
 - “Rules or conditions” means schema constraints and status transitions, not if/then underwriting or rating.
 - Schema changes do not rewrite historical policies. Underwriters update a record when they next edit it.
 - Seeded history is empty until a row is written through the API.
-- Offset pagination is enough for the demo book of business.
+- Keyset pagination is enough for the demo book; the dashboard strip still uses full counts.
 - Docker is the default way to run; Node/pnpm is for local iteration.
 
 ## Trade-offs considered
@@ -101,34 +116,31 @@ Postgres is on host port `5433` (see `.env`).
 |--------|------------|-----|
 | JSONB attributes | Extra columns or EAV | New products/fields without migrations; typed SQL filters still possible via `@>` |
 | Denormalized `search_text` | Searching JSONB on every list | Keeps the hot path indexed and avoids loading attributes |
-| Offset pagination | Keyset (`updated_at, id`) | Simpler UI and “page N of M”; keyset is better past tens of thousands of rows |
-| App-level `tenant_id` | Separate databases, or Postgres RLS first | One compose stack, easy to demo two MGAs; RLS would be the production second layer |
+| Keyset pagination | Offset (`page` / `totalPages`) | Stable under inserts; no `COUNT(*)` on the hot list |
+| Shared schema + RLS | Separate databases per MGA | One compose stack, two demo MGAs, and a missed `WHERE` still cannot leak rows |
 | JWT seeded users | Cognito / SSO | Fits a 2–3 day slice; an IdP is the regulated-ops path |
 | Version stamp + banner | Auto-migrate old policies | Honest about schema drift; no silent data rewrite |
 | REST + OpenAPI | GraphQL | Matches the brief; Swagger is enough for the 1:1 |
 
 ## What I would do with more time
 
-- Postgres row-level security (`SET LOCAL app.tenant_id`) so a missed `WHERE` cannot leak rows.
-- Tenant slug or subdomain on login, so the same email can exist in two MGAs.
-- Keyset pagination and structured request-id logs.
-- Playwright path: login → create draft → activate → reactivate with a reason.
-- Show constraint hints on the policy detail read view (required, min/max, allowed values), not only on the form.
 - Attachments on S3, an IdP instead of seeded users, and a real deploy (ECS/ALB, Aurora).
+- Issued policy documents (letterhead, versioning, e-sign) rather than the working-copy snapshot PDF.
 - Out of scope on purpose: rating, claims, documents, email, bordereaux.
 
 ## API
 
 | Method | Path | Description |
 |--------|------|-------------|
-| POST | `/auth/login` | Login |
+| GET | `/auth/tenants` | Tenant slugs and names for login |
+| POST | `/auth/login` | Login (`tenantSlug`, email, password) |
 | GET | `/auth/me` | Current user |
 | GET | `/health` | Health check |
 | GET/POST | `/policy-types` | List / create product schemas |
 | GET/PATCH | `/policy-types/:id` | Type detail / update |
 | GET | `/policy-types/:id/events` | Product edit history |
 | GET | `/policies/summary` | Counts by status / product / stale schema |
-| GET/POST | `/policies` | List (`q`, `typeId`, `status`, `attrKey`/`attrValue`, `staleSchema`) / create |
+| GET/POST | `/policies` | List (`q`, `typeId`, `status`, `attrKey`/`attrValue`, `staleSchema`, `after`, `limit`) / create |
 | POST | `/policies/:id/duplicate` | Clone as a new draft |
 | GET/PATCH | `/policies/:id` | Detail / update |
 | PATCH | `/policies/:id/status` | Status transition (`INACTIVE → ACTIVE` needs `reason`) |

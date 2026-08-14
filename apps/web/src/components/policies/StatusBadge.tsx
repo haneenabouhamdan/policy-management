@@ -19,8 +19,9 @@ const STYLES: Record<PolicyStatus, { chip: string; dot: string }> = {
 export function StatusBadge({ status }: { status: PolicyStatus }) {
   const style = STYLES[status];
   return (
-    <span
-      className={cn(
+      <span
+        data-testid="policy-status"
+        className={cn(
         "inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-[0.08em] ring-1 ring-inset",
         style.chip,
       )}

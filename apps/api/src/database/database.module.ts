@@ -7,6 +7,7 @@ import { PolicyType } from '../entities/policy-type.entity';
 import { PolicyTypeEvent } from '../entities/policy-type-event.entity';
 import { Tenant } from '../entities/tenant.entity';
 import { User } from '../entities/user.entity';
+import { TenantQueryRunnerPatchService } from './tenant-query-runner.patch';
 
 @Module({
   imports: [
@@ -22,11 +23,11 @@ import { User } from '../entities/user.entity';
         database: config.getOrThrow<string>('DB_NAME'),
         entities: [Tenant, PolicyType, Policy, PolicyEvent, PolicyTypeEvent, User],
         synchronize: false,
-        migrationsRun: true,
-        migrations: [__dirname + '/migrations/*{.ts,.js}'],
+        migrationsRun: false,
         logging: config.get<string>('NODE_ENV') === 'development',
       }),
     }),
   ],
+  providers: [TenantQueryRunnerPatchService],
 })
 export class DatabaseModule {}

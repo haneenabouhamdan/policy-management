@@ -21,7 +21,7 @@ type AuthContextValue = {
   user: AuthUser | null;
   token: string | null;
   isAuthenticated: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (tenantSlug: string, email: string, password: string) => Promise<void>;
   logout: () => void;
   canWritePolicies: boolean;
   canManageTypes: boolean;
@@ -36,13 +36,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     getStoredUser<AuthUser>(),
   );
 
-  const login = useCallback(async (email: string, password: string) => {
-    const result = await authApi.login(email, password);
-    setToken(result.accessToken);
-    setStoredUser(result.user);
-    setTokenState(result.accessToken);
-    setUser(result.user);
-  }, []);
+  const login = useCallback(
+    async (tenantSlug: string, email: string, password: string) => {
+      const result = await authApi.login(tenantSlug, email, password);
+      setToken(result.accessToken);
+      setStoredUser(result.user);
+      setTokenState(result.accessToken);
+      setUser(result.user);
+    },
+    [],
+  );
 
   const logout = useCallback(() => {
     setToken(null);

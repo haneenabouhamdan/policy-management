@@ -28,8 +28,10 @@ services:
     environment:
       DB_HOST: postgres
       DB_PORT: 5432
-      DB_USER: postgres
+      DB_USER: policy_app
       DB_PASSWORD: postgres
+      DB_ADMIN_USER: postgres
+      DB_ADMIN_PASSWORD: postgres
       DB_NAME: policies
       API_PORT: 3000
       WEB_ORIGIN: http://localhost:5173

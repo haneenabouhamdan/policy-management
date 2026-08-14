@@ -52,17 +52,17 @@ export class PolicyResponseDto {
 }
 
 export class PaginationMetaDto {
-  @ApiProperty({ example: 1 })
-  page!: number;
-
   @ApiProperty({ example: 20 })
   limit!: number;
 
-  @ApiProperty({ example: 42 })
-  total!: number;
+  @ApiPropertyOptional({
+    nullable: true,
+    example: 'MjAyNi0wOC0xNFQxMjowMDowMC4wMDBaOjpjY2NjY2NjYy1jY2NjLWNjY2MtY2NjYy1jY2NjY2NjY2NjY2M',
+  })
+  nextCursor!: string | null;
 
-  @ApiProperty({ example: 3 })
-  totalPages!: number;
+  @ApiProperty({ example: true })
+  hasMore!: boolean;
 }
 
 export class PaginatedPoliciesResponseDto {

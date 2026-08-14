@@ -9,6 +9,12 @@ import {
 } from "../api/policies";
 import { ApiError } from "../api/client";
 import { useAuth } from "../auth/AuthContext";
+import {
+  buildPolicySnapshotPdf,
+  collectPdfImages,
+  downloadPdf,
+  policySnapshotFilename,
+} from "../lib/policySnapshotPdf";
 import { ActivityTimeline } from "../components/policies/ActivityTimeline";
 import { SchemaVersionBanner } from "../components/policies/SchemaVersionBanner";
 import { StatusBadge } from "../components/policies/StatusBadge";
@@ -23,7 +29,7 @@ export function PolicyDetailPage() {
   const { id = "" } = useParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { canWritePolicies } = useAuth();
+  const { canWritePolicies, user } = useAuth();
   const [pendingStatus, setPendingStatus] = useState<PolicyStatus | null>(null);
   const [reason, setReason] = useState("");
   const [actionError, setActionError] = useState("");
@@ -116,8 +122,39 @@ export function PolicyDetailPage() {
             · Updated {new Date(policy.updatedAt).toLocaleString()}
           </p>
         </div>
-        {canWritePolicies ? (
-          <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2">
+          {schema ? (
+            <Button
+              variant="secondary"
+              data-testid="export-pdf"
+              onClick={() => {
+                void (async () => {
+                  const attributes = policy.attributes ?? {};
+                  const images = await collectPdfImages(schema, attributes);
+                  const bytes = buildPolicySnapshotPdf({
+                    tenantName: user?.tenantName || "Policy admin",
+                    policy,
+                    schema,
+                    attributes,
+                    exportedBy: user?.email,
+                    images,
+                  });
+                  downloadPdf(
+                    policySnapshotFilename({
+                      name: policy.name,
+                      product: policy.type?.name,
+                      status: policy.status,
+                    }),
+                    bytes,
+                  );
+                })();
+              }}
+            >
+              Export PDF
+            </Button>
+          ) : null}
+          {canWritePolicies ? (
+            <>
             <Button
               variant="secondary"
               onClick={() => duplicateMutation.mutate()}
@@ -152,25 +189,33 @@ export function PolicyDetailPage() {
               Edit
             </Button>
             {policy.status === "DRAFT" ? (
-              <Button onClick={() => setPendingStatus("ACTIVE")}>
+              <Button
+                data-testid="activate-policy"
+                onClick={() => setPendingStatus("ACTIVE")}
+              >
                 Activate
               </Button>
             ) : null}
             {policy.status === "INACTIVE" ? (
-              <Button onClick={() => setPendingStatus("ACTIVE")}>
+              <Button
+                data-testid="reactivate-policy"
+                onClick={() => setPendingStatus("ACTIVE")}
+              >
                 Reactivate
               </Button>
             ) : null}
             {policy.status === "DRAFT" || policy.status === "ACTIVE" ? (
               <Button
                 variant="secondary"
+                data-testid="deactivate-policy"
                 onClick={() => setPendingStatus("INACTIVE")}
               >
                 Deactivate
               </Button>
             ) : null}
-          </div>
-        ) : null}
+            </>
+          ) : null}
+        </div>
       </div>
 
       {actionError ? (
@@ -201,7 +246,10 @@ export function PolicyDetailPage() {
           {eventsQuery.isLoading ? (
             <Spinner label="Loading activity…" />
           ) : (
-            <ActivityTimeline events={eventsQuery.data || []} />
+            <ActivityTimeline
+              events={eventsQuery.data || []}
+              schema={schema}
+            />
           )}
         </div>
       </section>
@@ -234,6 +282,7 @@ export function PolicyDetailPage() {
           <div className="space-y-2">
             <p>Inactive policies need a short reason before they go active again.</p>
             <textarea
+              data-testid="status-reason"
               className="min-h-24 w-full rounded-xl border border-ink-200 px-3 py-2 text-sm text-ink-800 outline-none ring-brand-600/20 focus:ring-2"
               placeholder="Why is cover being reinstated?"
               value={reason}

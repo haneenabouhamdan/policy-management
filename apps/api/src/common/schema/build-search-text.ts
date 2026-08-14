@@ -1,6 +1,10 @@
 function toSearchPart(value: unknown): string | null {
   if (value == null) return null;
-  if (typeof value === 'string') return value;
+  if (typeof value === 'string') {
+    if (value.startsWith('data:')) return null;
+    if (/^https?:\/\//i.test(value)) return null;
+    return value;
+  }
   if (typeof value === 'number' || typeof value === 'boolean') {
     return String(value);
   }

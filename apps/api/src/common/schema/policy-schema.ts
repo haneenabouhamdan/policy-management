@@ -8,6 +8,7 @@ export const FIELD_TYPES = [
   'select',
   'multiselect',
   'text',
+  'image',
 ] as const;
 
 export type FieldType = (typeof FIELD_TYPES)[number];

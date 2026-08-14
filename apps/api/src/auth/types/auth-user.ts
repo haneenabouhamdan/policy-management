@@ -6,4 +6,5 @@ export type AuthUser = {
   role: UserRole;
   tenantId: string;
   tenantName: string;
+  tenantSlug: string;
 };

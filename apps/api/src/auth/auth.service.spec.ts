@@ -37,7 +37,7 @@ describe('AuthService', () => {
     passwordHash: 'hash',
     isActive: true,
     tenantId: 'tenant-1',
-    tenant: { id: 'tenant-1', name: 'Atom Coverholder' },
+    tenant: { id: 'tenant-1', name: 'Atom Coverholder', slug: 'atom' },
   };
 
   beforeEach(async () => {
@@ -55,49 +55,80 @@ describe('AuthService', () => {
   });
 
   it('returns a token for valid credentials', async () => {
-    usersRepo.find.mockResolvedValue([user]);
+    tenantsRepo.findOne.mockResolvedValue({
+      id: 'tenant-1',
+      name: 'Atom Coverholder',
+      slug: 'atom',
+    });
+    usersRepo.findOne.mockResolvedValue(user);
     (bcrypt.compare as jest.Mock).mockResolvedValue(true);
 
     const result = await service.login({
+      tenantSlug: 'atom',
       email: 'maya.hassan@atomcover.com',
       password: 'Admin123!',
     });
 
-    expect(usersRepo.find).toHaveBeenCalledWith({
-      where: { email: 'maya.hassan@atomcover.com' },
+    expect(usersRepo.findOne).toHaveBeenCalledWith({
+      where: { email: 'maya.hassan@atomcover.com', tenantId: 'tenant-1' },
       relations: { tenant: true },
     });
     expect(result.accessToken).toBe('token');
     expect(result.user.role).toBe(UserRole.ADMIN);
     expect(result.user.tenantName).toBe('Atom Coverholder');
+    expect(result.user.tenantSlug).toBe('atom');
   });
 
   it('rejects a wrong password', async () => {
-    usersRepo.find.mockResolvedValue([user]);
+    tenantsRepo.findOne.mockResolvedValue({
+      id: 'tenant-1',
+      slug: 'atom',
+    });
+    usersRepo.findOne.mockResolvedValue(user);
     (bcrypt.compare as jest.Mock).mockResolvedValue(false);
 
     await expect(
-      service.login({ email: 'maya.hassan@atomcover.com', password: 'wrongpass' }),
+      service.login({
+        tenantSlug: 'atom',
+        email: 'maya.hassan@atomcover.com',
+        password: 'wrongpass',
+      }),
     ).rejects.toBeInstanceOf(UnauthorizedException);
   });
 
   it('still hashes against a dummy value when the user is missing', async () => {
-    usersRepo.find.mockResolvedValue([]);
+    tenantsRepo.findOne.mockResolvedValue({
+      id: 'tenant-1',
+      slug: 'atom',
+    });
+    usersRepo.findOne.mockResolvedValue(null);
     (bcrypt.compare as jest.Mock).mockResolvedValue(false);
 
     await expect(
-      service.login({ email: 'missing@example.com', password: 'Admin123!' }),
+      service.login({
+        tenantSlug: 'atom',
+        email: 'missing@example.com',
+        password: 'Admin123!',
+      }),
     ).rejects.toBeInstanceOf(UnauthorizedException);
     expect(bcrypt.hash).toHaveBeenCalled();
     expect(bcrypt.compare).toHaveBeenCalled();
   });
 
   it('rejects an inactive user after comparing the password', async () => {
-    usersRepo.find.mockResolvedValue([{ ...user, isActive: false }]);
+    tenantsRepo.findOne.mockResolvedValue({
+      id: 'tenant-1',
+      slug: 'atom',
+    });
+    usersRepo.findOne.mockResolvedValue({ ...user, isActive: false });
     (bcrypt.compare as jest.Mock).mockResolvedValue(true);
 
     await expect(
-      service.login({ email: 'maya.hassan@atomcover.com', password: 'Admin123!' }),
+      service.login({
+        tenantSlug: 'atom',
+        email: 'maya.hassan@atomcover.com',
+        password: 'Admin123!',
+      }),
     ).rejects.toBeInstanceOf(UnauthorizedException);
   });
 
@@ -110,6 +141,7 @@ describe('AuthService', () => {
       role: user.role,
       tenantId: user.tenantId,
       tenantName: user.tenant.name,
+      tenantSlug: user.tenant.slug,
     });
   });
 

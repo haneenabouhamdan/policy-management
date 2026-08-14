@@ -13,6 +13,7 @@ const actor = {
   role: UserRole.ADMIN,
   tenantId: 'tenant-1',
   tenantName: 'Atom Coverholder',
+  tenantSlug: 'atom',
 };
 
 describe('PolicyTypesService', () => {

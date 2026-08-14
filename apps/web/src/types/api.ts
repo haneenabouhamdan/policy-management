@@ -2,7 +2,14 @@ export type UserRole = "ADMIN" | "UNDERWRITER" | "VIEWER";
 export type PolicyStatus = "DRAFT" | "ACTIVE" | "INACTIVE";
 
 export type FieldType =
-  "string" | "number" | "boolean" | "date" | "select" | "multiselect" | "text";
+  | "string"
+  | "number"
+  | "boolean"
+  | "date"
+  | "select"
+  | "multiselect"
+  | "text"
+  | "image";
 
 export type PolicyField = {
   key: string;
@@ -31,6 +38,12 @@ export type AuthUser = {
   role: UserRole;
   tenantId: string;
   tenantName: string;
+  tenantSlug: string;
+};
+
+export type TenantOption = {
+  slug: string;
+  name: string;
 };
 
 export type LoginResponse = {
@@ -84,10 +97,9 @@ export type PolicyTypeEvent = {
 export type PaginatedPolicies = {
   data: Policy[];
   meta: {
-    page: number;
     limit: number;
-    total: number;
-    totalPages: number;
+    nextCursor: string | null;
+    hasMore: boolean;
   };
 };
 

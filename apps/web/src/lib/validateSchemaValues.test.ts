@@ -50,4 +50,32 @@ describe("validateSchemaValues", () => {
       validateSchemaValues(schema, { regions: ["Mars"], days: 3 }),
     ).toEqual({ regions: "Choose valid options" });
   });
+
+  it("rejects a required image that is not a URL or upload", () => {
+    const withImage: PolicyTypeSchema = {
+      sections: [
+        {
+          id: "docs",
+          title: "Documents",
+          fields: [
+            {
+              key: "photo",
+              label: "Photo",
+              type: "image",
+              required: true,
+            },
+          ],
+        },
+      ],
+    };
+    expect(validateSchemaValues(withImage, {})).toEqual({ photo: "Required" });
+    expect(validateSchemaValues(withImage, { photo: "file.pdf" })).toEqual({
+      photo: "Upload an image or paste a URL",
+    });
+    expect(
+      validateSchemaValues(withImage, {
+        photo: "https://images.example.com/risk.jpg",
+      }),
+    ).toEqual({});
+  });
 });

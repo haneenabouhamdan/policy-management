@@ -7,6 +7,8 @@ import {
   Logger,
 } from '@nestjs/common';
 import type { Response } from 'express';
+import type { RequestWithId } from '../http-request';
+import { getRequestContext } from '../request-context';
 
 @Catch()
 export class AllExceptionsFilter implements ExceptionFilter {
@@ -14,7 +16,10 @@ export class AllExceptionsFilter implements ExceptionFilter {
 
   catch(exception: unknown, host: ArgumentsHost) {
     const ctx = host.switchToHttp();
+    const request = ctx.getRequest<RequestWithId>();
     const response = ctx.getResponse<Response>();
+    const requestId =
+      request.requestId ?? getRequestContext()?.requestId ?? undefined;
 
     const isHttp = exception instanceof HttpException;
     const status = isHttp
@@ -33,12 +38,17 @@ export class AllExceptionsFilter implements ExceptionFilter {
       );
     }
 
+    if (requestId) {
+      response.setHeader('X-Request-Id', requestId);
+    }
+
     response.status(status).json({
       statusCode: status,
       message:
         (body?.message as string | string[] | undefined) ??
         (status >= 500 ? 'Internal server error' : 'Request failed'),
       errors: body?.errors,
+      requestId,
     });
   }
 }

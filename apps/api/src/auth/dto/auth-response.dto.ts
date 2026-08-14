@@ -19,6 +19,9 @@ export class AuthUserDto {
 
   @ApiProperty({ example: 'Atom Coverholder' })
   tenantName!: string;
+
+  @ApiProperty({ example: 'atom' })
+  tenantSlug!: string;
 }
 
 export class LoginResponseDto {

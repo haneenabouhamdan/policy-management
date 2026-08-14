@@ -14,7 +14,7 @@ export type ListPoliciesParams = {
   attrKey?: string;
   attrValue?: string;
   staleSchema?: boolean;
-  page?: number;
+  after?: string;
   limit?: number;
 };
 
@@ -26,7 +26,7 @@ export function listPolicies(params: ListPoliciesParams) {
   if (params.attrKey) query.set("attrKey", params.attrKey);
   if (params.attrValue) query.set("attrValue", params.attrValue);
   if (params.staleSchema) query.set("staleSchema", "true");
-  if (params.page) query.set("page", String(params.page));
+  if (params.after) query.set("after", params.after);
   if (params.limit) query.set("limit", String(params.limit));
   const qs = query.toString();
   return apiRequest<PaginatedPolicies>(`/policies${qs ? `?${qs}` : ""}`);

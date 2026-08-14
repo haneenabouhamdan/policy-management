@@ -15,6 +15,7 @@ const actor = {
   role: UserRole.ADMIN,
   tenantId: 'tenant-1',
   tenantName: 'Atom Coverholder',
+  tenantSlug: 'atom',
 };
 
 describe('PoliciesService', () => {
@@ -132,12 +133,16 @@ describe('PoliciesService', () => {
       addSelect: jest.fn().mockReturnThis(),
       where: jest.fn().mockReturnThis(),
       orderBy: jest.fn().mockReturnThis(),
-      skip: jest.fn().mockReturnThis(),
+      addOrderBy: jest.fn().mockReturnThis(),
       take: jest.fn().mockReturnThis(),
       andWhere: jest.fn().mockReturnThis(),
-      getManyAndCount: jest
-        .fn()
-        .mockResolvedValue([[{ id: 'p1', name: 'UAE Weekend Cover' }], 1]),
+      getMany: jest.fn().mockResolvedValue([
+        {
+          id: 'p1',
+          name: 'UAE Weekend Cover',
+          updatedAt: new Date('2026-08-14T12:00:00.000Z'),
+        },
+      ]),
     };
     policiesRepo.createQueryBuilder.mockReturnValue(qb);
 
@@ -148,7 +153,6 @@ describe('PoliciesService', () => {
         typeId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
         attrKey: 'regions',
         attrValue: 'UAE',
-        page: 2,
         limit: 10,
       },
       actor,
@@ -158,8 +162,7 @@ describe('PoliciesService', () => {
     expect(qb.where).toHaveBeenCalledWith('policy.tenantId = :tenantId', {
       tenantId: actor.tenantId,
     });
-    expect(qb.skip).toHaveBeenCalledWith(10);
-    expect(qb.take).toHaveBeenCalledWith(10);
+    expect(qb.take).toHaveBeenCalledWith(11);
     expect(qb.andWhere).toHaveBeenCalledWith(
       `policy.searchText ILIKE :q ESCAPE '\\'`,
       { q: '%uae\\%%' },
@@ -179,10 +182,9 @@ describe('PoliciesService', () => {
       },
     );
     expect(result.meta).toEqual({
-      page: 2,
       limit: 10,
-      total: 1,
-      totalPages: 1,
+      nextCursor: null,
+      hasMore: false,
     });
   });
 
@@ -193,22 +195,22 @@ describe('PoliciesService', () => {
       addSelect: jest.fn().mockReturnThis(),
       where: jest.fn().mockReturnThis(),
       orderBy: jest.fn().mockReturnThis(),
-      skip: jest.fn().mockReturnThis(),
+      addOrderBy: jest.fn().mockReturnThis(),
       take: jest.fn().mockReturnThis(),
       andWhere: jest.fn().mockReturnThis(),
-      getManyAndCount: jest.fn().mockResolvedValue([[], 0]),
+      getMany: jest.fn().mockResolvedValue([]),
     };
     policiesRepo.createQueryBuilder.mockReturnValue(qb);
 
     const result = await service.findAll(
-      { staleSchema: true, page: 1, limit: 10 },
+      { staleSchema: true, limit: 10 },
       actor,
     );
 
     expect(qb.andWhere).toHaveBeenCalledWith(
       'policy.schemaVersion < type.schemaVersion',
     );
-    expect(result.meta.totalPages).toBe(0);
+    expect(result.meta.hasMore).toBe(false);
   });
 
   it('throws when a policy is missing', async () => {

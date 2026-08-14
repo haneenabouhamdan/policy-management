@@ -1,10 +1,14 @@
 import { apiRequest } from "./client";
-import type { AuthUser, LoginResponse } from "../types/api";
+import type { AuthUser, LoginResponse, TenantOption } from "../types/api";
 
-export function login(email: string, password: string) {
+export function listTenants() {
+  return apiRequest<TenantOption[]>("/auth/tenants", { auth: false });
+}
+
+export function login(tenantSlug: string, email: string, password: string) {
   return apiRequest<LoginResponse>("/auth/login", {
     method: "POST",
-    body: { email, password },
+    body: { tenantSlug, email, password },
     auth: false,
   });
 }

@@ -114,6 +114,7 @@ export function PolicyCreatePage() {
       <form className="space-y-5" onSubmit={onSubmit}>
         <div className="grid gap-4 rounded-2xl border border-ink-100 bg-white p-5 shadow-panel md:grid-cols-2">
           <Select
+            id="product-select"
             label="Product *"
             placeholder="Select product…"
             value={typeId}
@@ -128,6 +129,7 @@ export function PolicyCreatePage() {
             }))}
           />
           <Input
+            id="policy-name"
             label="Policy name *"
             value={name}
             onChange={(e) => setName(e.target.value)}
@@ -155,7 +157,11 @@ export function PolicyCreatePage() {
         ) : null}
 
         <div className="flex gap-2">
-          <Button type="submit" disabled={createMutation.isPending}>
+          <Button
+            type="submit"
+            disabled={createMutation.isPending}
+            data-testid="create-draft"
+          >
             {createMutation.isPending ? "Saving…" : "Create draft"}
           </Button>
           <Button

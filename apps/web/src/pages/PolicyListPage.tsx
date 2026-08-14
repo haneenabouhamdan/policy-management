@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { listPolicies, getPolicySummary } from "../api/policies";
@@ -15,7 +15,6 @@ import { Pagination } from "../components/ui/Pagination";
 import { Select } from "../components/ui/Select";
 import { Spinner } from "../components/ui/Spinner";
 import type { PolicyField, PolicyStatus } from "../types/api";
-import { clampPage } from "../lib/clampPage";
 import { useDebouncedValue } from "../lib/useDebouncedValue";
 
 const STATUSES: PolicyStatus[] = ["DRAFT", "ACTIVE", "INACTIVE"];
@@ -44,12 +43,13 @@ export function PolicyListPage() {
   const attrKey = params.get("attrKey") ?? "";
   const attrValue = params.get("attrValue") ?? "";
   const staleSchema = params.get("staleSchema") === "true";
-  const page = Math.max(1, Number(params.get("page") || 1) || 1);
+  const after = params.get("after") ?? "";
+  const [prevStack, setPrevStack] = useState<string[]>([]);
   const debouncedQ = useDebouncedValue(q, 300);
 
   function patchFilters(
     next: Record<string, string | number | boolean | null | undefined>,
-    resetPage = true,
+    resetCursor = true,
   ) {
     const copy = new URLSearchParams(params);
     for (const [key, value] of Object.entries(next)) {
@@ -59,7 +59,10 @@ export function PolicyListPage() {
         copy.set(key, String(value));
       }
     }
-    if (resetPage) copy.delete("page");
+    if (resetCursor) {
+      copy.delete("after");
+      setPrevStack([]);
+    }
     setParams(copy, { replace: true });
   }
 
@@ -94,10 +97,10 @@ export function PolicyListPage() {
           : undefined,
       attrValue: typeId && attrValue ? attrValue : undefined,
       staleSchema: staleSchema || undefined,
-      page,
+      after: after || undefined,
       limit: 10,
     }),
-    [debouncedQ, typeId, status, attrValue, activeAttrField, staleSchema, page],
+    [debouncedQ, typeId, status, attrValue, activeAttrField, staleSchema, after],
   );
 
   const policiesQuery = useQuery({
@@ -111,15 +114,6 @@ export function PolicyListPage() {
   });
 
   const hasFilters = Boolean(q || typeId || status || attrValue || staleSchema);
-  const total = policiesQuery.data?.meta.total ?? 0;
-  const totalPages = policiesQuery.data?.meta.totalPages ?? 0;
-
-  useEffect(() => {
-    if (totalPages > 0 && page > totalPages) {
-      patchFilters({ page: clampPage(page, totalPages) }, false);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, totalPages]);
 
   return (
     <div className="animate-fadeIn space-y-6">
@@ -133,7 +127,12 @@ export function PolicyListPage() {
           </p>
         </div>
         {canWritePolicies ? (
-          <Button onClick={() => navigate("/policies/new")}>New policy</Button>
+          <Button
+            data-testid="new-policy"
+            onClick={() => navigate("/policies/new")}
+          >
+            New policy
+          </Button>
         ) : null}
       </div>
 
@@ -213,6 +212,7 @@ export function PolicyListPage() {
           variant="secondary"
           disabled={!hasFilters}
           onClick={() => {
+            setPrevStack([]);
             setParams(new URLSearchParams(), { replace: true });
           }}
         >
@@ -233,7 +233,7 @@ export function PolicyListPage() {
         />
       ) : null}
 
-      {policiesQuery.data && total === 0 ? (
+      {policiesQuery.data && policiesQuery.data.data.length === 0 ? (
         <EmptyState
           title="No policies found"
           description="Try adjusting filters, or create a new draft policy."
@@ -281,12 +281,21 @@ export function PolicyListPage() {
           </table>
           <div className="border-t border-ink-100 px-5 py-3">
             <Pagination
-              page={policiesQuery.data.meta.page}
-              totalPages={policiesQuery.data.meta.totalPages}
-              total={policiesQuery.data.meta.total}
-              onPageChange={(nextPage) =>
-                patchFilters({ page: nextPage > 1 ? nextPage : null }, false)
-              }
+              count={policiesQuery.data.data.length}
+              hasMore={policiesQuery.data.meta.hasMore}
+              canGoBack={prevStack.length > 0 || Boolean(after)}
+              onPrevious={() => {
+                const next = [...prevStack];
+                const previous = next.pop() ?? "";
+                setPrevStack(next);
+                patchFilters({ after: previous || null }, false);
+              }}
+              onNext={() => {
+                const nextCursor = policiesQuery.data?.meta.nextCursor;
+                if (!nextCursor) return;
+                setPrevStack((stack) => [...stack, after]);
+                patchFilters({ after: nextCursor }, false);
+              }}
             />
           </div>
         </div>

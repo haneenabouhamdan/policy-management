@@ -18,6 +18,7 @@ import { CurrentUser } from './decorators/current-user.decorator';
 import { Public } from './decorators/public.decorator';
 import { AuthUserDto, LoginResponseDto } from './dto/auth-response.dto';
 import { LoginDto } from './dto/login.dto';
+import { TenantOptionDto } from './dto/tenant-option.dto';
 import { AuthService } from './auth.service';
 import type { AuthUser } from './types/auth-user';
 
@@ -25,6 +26,14 @@ import type { AuthUser } from './types/auth-user';
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
+
+  @Public()
+  @Get('tenants')
+  @ApiOperation({ summary: 'List tenant slugs for the login screen' })
+  @ApiOkResponse({ type: [TenantOptionDto] })
+  listTenants() {
+    return this.authService.listTenants();
+  }
 
   @Public()
   @Post('login')

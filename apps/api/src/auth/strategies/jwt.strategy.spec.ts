@@ -34,17 +34,22 @@ describe('JwtStrategy', () => {
       role: UserRole.ADMIN,
       isActive: true,
       tenantId: 'tenant-1',
-      tenant: { id: 'tenant-1', name: 'Atom Coverholder' },
+      tenant: { id: 'tenant-1', name: 'Atom Coverholder', slug: 'atom' },
     });
     const strategy = await createStrategy();
     await expect(
-      strategy.validate({ sub: 'user-1', email: 'maya.hassan@atomcover.com' }),
+      strategy.validate({
+        sub: 'user-1',
+        email: 'maya.hassan@atomcover.com',
+        tenantId: 'tenant-1',
+      }),
     ).resolves.toEqual({
       id: 'user-1',
       email: 'maya.hassan@atomcover.com',
       role: UserRole.ADMIN,
       tenantId: 'tenant-1',
       tenantName: 'Atom Coverholder',
+      tenantSlug: 'atom',
     });
   });
 
@@ -57,7 +62,11 @@ describe('JwtStrategy', () => {
     });
     const strategy = await createStrategy();
     await expect(
-      strategy.validate({ sub: 'user-1', email: 'maya.hassan@atomcover.com' }),
+      strategy.validate({
+        sub: 'user-1',
+        email: 'maya.hassan@atomcover.com',
+        tenantId: 'tenant-1',
+      }),
     ).rejects.toBeInstanceOf(UnauthorizedException);
   });
 });

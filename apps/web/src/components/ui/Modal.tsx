@@ -39,7 +39,11 @@ export function Modal({
             <Button variant="secondary" onClick={onClose} disabled={busy}>
               {cancelLabel}
             </Button>
-            <Button onClick={onConfirm} disabled={busy || confirmDisabled}>
+            <Button
+              onClick={onConfirm}
+              disabled={busy || confirmDisabled}
+              data-testid="confirm-status"
+            >
               {busy ? "Working…" : confirmLabel}
             </Button>
           </div>

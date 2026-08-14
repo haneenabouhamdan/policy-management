@@ -6,8 +6,9 @@ import { Input } from "../ui/Input";
 import { Select } from "../ui/Select";
 
 export const FIELD_TYPE_OPTIONS: Array<{ value: FieldType; label: string }> = [
-  { value: "string", label: "Text" },
-  { value: "text", label: "Long text" },
+  { value: "string", label: "Short text" },
+  { value: "text", label: "Text area" },
+  { value: "image", label: "Image" },
   { value: "number", label: "Number" },
   { value: "boolean", label: "Yes / No" },
   { value: "date", label: "Date" },
@@ -256,6 +257,12 @@ export function ProductSchemaBuilder({
                     />
                   </div>
                 )}
+                {field.type === "image" ? (
+                  <p className="md:col-span-2 text-xs text-ink-400">
+                    Underwriters can upload a photo or paste an image URL when
+                    issuing a policy.
+                  </p>
+                ) : null}
                 {field.type === "number" ? (
                   <>
                     <Input

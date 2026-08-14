@@ -49,6 +49,35 @@ describe('validateAttributes', () => {
     });
   });
 
+  it('accepts an image URL and rejects a non-image string', () => {
+    const schema: PolicyTypeSchema = {
+      sections: [
+        {
+          id: 'docs',
+          title: 'Documents',
+          fields: [
+            {
+              key: 'photo',
+              label: 'Photo',
+              type: 'image',
+              required: true,
+            },
+          ],
+        },
+      ],
+    };
+
+    expect(
+      validateAttributes(schema, {
+        photo: 'https://images.example.com/risk.jpg',
+      }),
+    ).toEqual({ photo: 'https://images.example.com/risk.jpg' });
+
+    expect(() =>
+      validateAttributes(schema, { photo: 'not-an-image' }),
+    ).toThrow(BadRequestException);
+  });
+
   it('rejects unknown keys', () => {
     expect(() =>
       validateAttributes(travelSchema, {

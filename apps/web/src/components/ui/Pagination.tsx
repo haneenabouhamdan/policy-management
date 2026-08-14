@@ -1,20 +1,22 @@
 import { Button } from "./Button";
 
 export function Pagination({
-  page,
-  totalPages,
-  total,
-  onPageChange,
+  hasMore,
+  canGoBack,
+  count,
+  onPrevious,
+  onNext,
 }: {
-  page: number;
-  totalPages: number;
-  total: number;
-  onPageChange: (page: number) => void;
+  hasMore: boolean;
+  canGoBack: boolean;
+  count: number;
+  onPrevious: () => void;
+  onNext: () => void;
 }) {
-  if (totalPages <= 1) {
+  if (!hasMore && !canGoBack) {
     return (
       <p className="text-sm text-ink-400">
-        {total} result{total === 1 ? "" : "s"}
+        {count} result{count === 1 ? "" : "s"}
       </p>
     );
   }
@@ -22,22 +24,22 @@ export function Pagination({
   return (
     <div className="flex items-center justify-between gap-4">
       <p className="text-sm text-ink-400">
-        Page {page} of {totalPages} · {total} results
+        {count} on this page
       </p>
       <div className="flex gap-2">
         <Button
           size="sm"
           variant="secondary"
-          disabled={page <= 1}
-          onClick={() => onPageChange(Math.max(1, page - 1))}
+          disabled={!canGoBack}
+          onClick={onPrevious}
         >
           Previous
         </Button>
         <Button
           size="sm"
           variant="secondary"
-          disabled={page >= totalPages}
-          onClick={() => onPageChange(Math.min(totalPages, page + 1))}
+          disabled={!hasMore}
+          onClick={onNext}
         >
           Next
         </Button>

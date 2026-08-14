@@ -1,9 +1,12 @@
 import { useState, type FormEvent } from "react";
 import { Navigate, useLocation, useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { listTenants } from "../api/auth";
 import { ApiError } from "../api/client";
 import { useAuth } from "../auth/AuthContext";
 import { Button } from "../components/ui/Button";
 import { Input } from "../components/ui/Input";
+import { Select } from "../components/ui/Select";
 import { safeRedirectPath } from "../lib/safeRedirect";
 
 export function LoginPage() {
@@ -14,6 +17,12 @@ export function LoginPage() {
     (location.state as { from?: string } | null)?.from,
   );
 
+  const tenantsQuery = useQuery({
+    queryKey: ["auth", "tenants"],
+    queryFn: listTenants,
+  });
+
+  const [tenantSlug, setTenantSlug] = useState("atom");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -28,7 +37,7 @@ export function LoginPage() {
     setBusy(true);
     setError("");
     try {
-      await login(email.trim(), password);
+      await login(tenantSlug, email.trim(), password);
       navigate(from, { replace: true });
     } catch (err) {
       setError(
@@ -45,11 +54,25 @@ export function LoginPage() {
         <p className="text-sm font-medium text-ink-400">Policy admin</p>
         <h1 className="mt-2 font-display text-2xl text-ink-900">Sign in</h1>
         <p className="mt-2 text-sm text-ink-500">
-          Use your account to open policies and products.
+          Choose your MGA, then sign in. The same email can exist in more than
+          one tenant.
         </p>
 
         <form className="mt-8 space-y-4" onSubmit={onSubmit}>
+          <Select
+            id="tenant-slug"
+            name="tenantSlug"
+            label="MGA"
+            value={tenantSlug}
+            onChange={(e) => setTenantSlug(e.target.value)}
+            options={(tenantsQuery.data || []).map((tenant) => ({
+              value: tenant.slug,
+              label: tenant.name,
+            }))}
+            required
+          />
           <Input
+            id="login-email"
             label="Email"
             type="email"
             autoComplete="username"
@@ -58,6 +81,7 @@ export function LoginPage() {
             required
           />
           <Input
+            id="login-password"
             label="Password"
             type="password"
             autoComplete="current-password"
@@ -65,12 +89,21 @@ export function LoginPage() {
             onChange={(e) => setPassword(e.target.value)}
             required
           />
+          {tenantsQuery.isError ? (
+            <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
+              Could not load MGAs
+            </p>
+          ) : null}
           {error ? (
             <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
               {error}
             </p>
           ) : null}
-          <Button className="w-full" disabled={busy}>
+          <Button
+            className="w-full"
+            disabled={busy || tenantsQuery.isLoading}
+            data-testid="login-submit"
+          >
             {busy ? "Signing in…" : "Sign in"}
           </Button>
         </form>

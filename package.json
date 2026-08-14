@@ -14,6 +14,7 @@
     "db:up": "docker compose up -d postgres",
     "db:down": "docker compose down",
     "db:logs": "docker compose logs -f postgres",
-    "seed": "pnpm --filter @policy-management/api seed"
+    "seed": "pnpm --filter @policy-management/api seed",
+    "test:e2e": "pnpm --filter @policy-management/web test:e2e"
   }
 }

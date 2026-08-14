@@ -34,6 +34,13 @@ export function validateSchemaValues(
         }
       }
 
+      if (field.type === "image" && typeof value === "string") {
+        const ok =
+          /^https?:\/\/\S+$/i.test(value.trim()) ||
+          /^data:image\//i.test(value);
+        if (!ok) errors[field.key] = "Upload an image or paste a URL";
+      }
+
       if (
         (field.type === "select" || field.type === "multiselect") &&
         field.options?.length

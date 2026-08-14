@@ -1,9 +1,13 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { buildSearchText } from '../common/schema/build-search-text';
 import { validateAttributes } from '../common/schema/attribute-validator';
 import { escapeIlike } from '../common/search/escape-ilike';
+import {
+  decodePolicyCursor,
+  encodePolicyCursor,
+} from '../common/pagination/keyset-cursor';
 import { assertStatusTransition } from '../common/status/policy-status.transitions';
 import type { AuthUser } from '../auth/types/auth-user';
 import { Policy } from '../entities/policy.entity';
@@ -23,10 +27,9 @@ import { UpdatePolicyStatusDto } from './dto/update-policy-status.dto';
 export type PaginatedPolicies = {
   data: Policy[];
   meta: {
-    page: number;
     limit: number;
-    total: number;
-    totalPages: number;
+    nextCursor: string | null;
+    hasMore: boolean;
   };
 };
 
@@ -45,7 +48,6 @@ export class PoliciesService {
     query: ListPoliciesQueryDto,
     actor: AuthUser,
   ): Promise<PaginatedPolicies> {
-    const page = query.page ?? 1;
     const limit = query.limit ?? 20;
 
     const qb = this.policiesRepo
@@ -63,8 +65,19 @@ export class PoliciesService {
       .addSelect(['type.id', 'type.name'])
       .where('policy.tenantId = :tenantId', { tenantId: actor.tenantId })
       .orderBy('policy.updatedAt', 'DESC')
-      .skip((page - 1) * limit)
-      .take(limit);
+      .addOrderBy('policy.id', 'DESC')
+      .take(limit + 1);
+
+    if (query.after) {
+      const cursor = decodePolicyCursor(query.after);
+      if (!cursor) {
+        throw new BadRequestException('Invalid pagination cursor');
+      }
+      qb.andWhere(
+        '(policy.updatedAt < :cursorAt OR (policy.updatedAt = :cursorAt AND policy.id < :cursorId))',
+        { cursorAt: cursor.updatedAt, cursorId: cursor.id },
+      );
+    }
 
     if (query.q?.trim()) {
       qb.andWhere(`policy.searchText ILIKE :q ESCAPE '\\'`, {
@@ -99,15 +112,20 @@ export class PoliciesService {
       );
     }
 
-    const [data, total] = await qb.getManyAndCount();
+    const rows = await qb.getMany();
+    const hasMore = rows.length > limit;
+    const data = hasMore ? rows.slice(0, limit) : rows;
+    const last = data[data.length - 1];
 
     return {
       data,
       meta: {
-        page,
         limit,
-        total,
-        totalPages: Math.ceil(total / limit) || 0,
+        nextCursor:
+          hasMore && last
+            ? encodePolicyCursor(last.updatedAt, last.id)
+            : null,
+        hasMore,
       },
     };
   }

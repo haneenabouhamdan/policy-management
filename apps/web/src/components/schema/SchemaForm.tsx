@@ -2,6 +2,7 @@ import type { PolicyField, PolicyTypeSchema } from "../../types/api";
 import { cn } from "../../lib/cn";
 import { Input } from "../ui/Input";
 import { Select } from "../ui/Select";
+import { ImageField } from "./ImageField";
 
 export { validateSchemaValues } from "../../lib/validateSchemaValues";
 
@@ -34,6 +35,7 @@ function FieldControl({
   if (field.type === "select") {
     return (
       <Select
+        id={field.key}
         label={`${field.label}${field.required ? " *" : ""}`}
         value={String(value ?? "")}
         onChange={(e) => onChange(e.target.value)}
@@ -87,6 +89,17 @@ function FieldControl({
     );
   }
 
+  if (field.type === "image") {
+    return (
+      <ImageField
+        field={field}
+        value={value}
+        error={error}
+        onChange={onChange}
+      />
+    );
+  }
+
   if (field.type === "text") {
     return (
       <label className="block space-y-1.5">
@@ -95,12 +108,14 @@ function FieldControl({
           {field.required ? <span className="text-red-500"> *</span> : null}
         </span>
         <textarea
+          rows={6}
           className={cn(
-            "min-h-24 w-full rounded-lg border border-ink-200 bg-white px-3 py-2 text-sm text-ink-900 outline-none transition placeholder:text-ink-300 hover:border-ink-300 focus:border-brand-500 focus:ring-4 focus:ring-brand-100",
+            "min-h-32 w-full rounded-lg border border-ink-200 bg-white px-3 py-2 text-sm leading-6 text-ink-900 outline-none transition placeholder:text-ink-300 hover:border-ink-300 focus:border-brand-500 focus:ring-4 focus:ring-brand-100",
             error && "border-red-300 focus:border-red-500",
           )}
           value={String(value ?? "")}
           onChange={(e) => onChange(e.target.value)}
+          placeholder="Wording, conditions, or notes"
         />
         {error ? <span className="text-xs text-red-600">{error}</span> : null}
       </label>
@@ -116,6 +131,7 @@ function FieldControl({
 
   return (
     <Input
+      id={field.key}
       label={`${field.label}${field.required ? " *" : ""}`}
       type={inputType}
       value={value == null ? "" : String(value)}
@@ -162,7 +178,9 @@ export function SchemaForm({
               <div
                 key={field.key}
                 className={
-                  field.type === "text" || field.type === "multiselect"
+                  field.type === "text" ||
+                  field.type === "image" ||
+                  field.type === "multiselect"
                     ? "md:col-span-2"
                     : undefined
                 }

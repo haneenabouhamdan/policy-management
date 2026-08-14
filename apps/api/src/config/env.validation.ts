@@ -28,6 +28,14 @@ class EnvironmentVariables {
   DB_NAME!: string;
 
   @IsOptional()
+  @IsString()
+  DB_ADMIN_USER?: string;
+
+  @IsOptional()
+  @IsString()
+  DB_ADMIN_PASSWORD?: string;
+
+  @IsOptional()
   @IsInt()
   @Min(1)
   @Max(65535)
