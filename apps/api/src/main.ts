@@ -29,6 +29,7 @@ async function bootstrap() {
     .setTitle('Policy Management API')
     .setDescription('Configurable policy types and policy instances')
     .setVersion('0.1.0')
+    .addBearerAuth()
     .build();
   SwaggerModule.setup('docs', app, SwaggerModule.createDocument(app, swagger));
 

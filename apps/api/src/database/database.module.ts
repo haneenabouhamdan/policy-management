@@ -3,6 +3,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Policy } from '../entities/policy.entity';
 import { PolicyType } from '../entities/policy-type.entity';
+import { User } from '../entities/user.entity';
 
 @Module({
   imports: [
@@ -16,7 +17,7 @@ import { PolicyType } from '../entities/policy-type.entity';
         username: config.getOrThrow<string>('DB_USER'),
         password: config.getOrThrow<string>('DB_PASSWORD'),
         database: config.getOrThrow<string>('DB_NAME'),
-        entities: [PolicyType, Policy],
+        entities: [PolicyType, Policy, User],
         synchronize: false,
         migrationsRun: true,
         migrations: [__dirname + '/migrations/*{.ts,.js}'],
