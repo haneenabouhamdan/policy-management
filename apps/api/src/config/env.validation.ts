@@ -33,7 +33,7 @@ class EnvironmentVariables {
 
   @IsOptional()
   @IsString()
-  DB_ADMIN_PASSWORD?: string;
+  DB_SSL?: string;
 
   @IsOptional()
   @IsInt()

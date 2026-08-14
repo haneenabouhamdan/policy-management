@@ -14,18 +14,33 @@ import { TenantQueryRunnerPatchService } from './tenant-query-runner.patch';
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
-      useFactory: (config: ConfigService) => ({
-        type: 'postgres' as const,
-        host: config.getOrThrow<string>('DB_HOST'),
-        port: config.getOrThrow<number>('DB_PORT'),
-        username: config.getOrThrow<string>('DB_USER'),
-        password: config.getOrThrow<string>('DB_PASSWORD'),
-        database: config.getOrThrow<string>('DB_NAME'),
-        entities: [Tenant, PolicyType, Policy, PolicyEvent, PolicyTypeEvent, User],
-        synchronize: false,
-        migrationsRun: false,
-        logging: config.get<string>('NODE_ENV') === 'development',
-      }),
+      useFactory: (config: ConfigService) => {
+        const sslFlag = (config.get<string>('DB_SSL') ?? '').toLowerCase();
+        const ssl =
+          sslFlag === 'true' || sslFlag === '1' || sslFlag === 'require'
+            ? { rejectUnauthorized: false }
+            : undefined;
+        return {
+          type: 'postgres' as const,
+          host: config.getOrThrow<string>('DB_HOST'),
+          port: config.getOrThrow<number>('DB_PORT'),
+          username: config.getOrThrow<string>('DB_USER'),
+          password: config.getOrThrow<string>('DB_PASSWORD'),
+          database: config.getOrThrow<string>('DB_NAME'),
+          ssl,
+          entities: [
+            Tenant,
+            PolicyType,
+            Policy,
+            PolicyEvent,
+            PolicyTypeEvent,
+            User,
+          ],
+          synchronize: false,
+          migrationsRun: false,
+          logging: config.get<string>('NODE_ENV') === 'development',
+        };
+      },
     }),
   ],
   providers: [TenantQueryRunnerPatchService],

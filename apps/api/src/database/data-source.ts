@@ -11,6 +11,14 @@ import { User } from '../entities/user.entity';
 loadEnv({ path: resolve(process.cwd(), '../../.env') });
 loadEnv();
 
+function sslOption() {
+  const flag = (process.env.DB_SSL ?? '').toLowerCase();
+  if (flag === 'true' || flag === '1' || flag === 'require') {
+    return { rejectUnauthorized: false };
+  }
+  return undefined;
+}
+
 export default new DataSource({
   type: 'postgres',
   host: process.env.DB_HOST ?? 'localhost',
@@ -19,6 +27,7 @@ export default new DataSource({
   password:
     process.env.DB_ADMIN_PASSWORD ?? process.env.DB_PASSWORD ?? 'postgres',
   database: process.env.DB_NAME ?? 'policies',
+  ssl: sslOption(),
   entities: [Tenant, PolicyType, Policy, PolicyEvent, PolicyTypeEvent, User],
   migrations: [__dirname + '/migrations/*{.ts,.js}'],
   synchronize: false,
