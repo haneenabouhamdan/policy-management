@@ -340,10 +340,9 @@ describe('PoliciesService', () => {
 
     const result = await service.summarize(actor);
 
-    expect(statusQb.where).toHaveBeenCalledWith(
-      'policy.tenantId = :tenantId',
-      { tenantId: actor.tenantId },
-    );
+    expect(statusQb.where).toHaveBeenCalledWith('policy.tenantId = :tenantId', {
+      tenantId: actor.tenantId,
+    });
 
     expect(result).toEqual({
       total: 7,
@@ -387,11 +386,11 @@ describe('PoliciesService', () => {
     expect(eventsRepo.save).toHaveBeenCalledWith(
       expect.objectContaining({
         type: PolicyEventType.STATUS_CHANGED,
-        payload: expect.objectContaining({
-          reason: 'Premium paid and cover reinstated',
-        }),
       }),
     );
+    expect(eventsRepo.save.mock.calls.at(-1)?.[0]).toMatchObject({
+      payload: { reason: 'Premium paid and cover reinstated' },
+    });
   });
 
   it('duplicates a policy as a new draft in the same tenant', async () => {
@@ -419,8 +418,10 @@ describe('PoliciesService', () => {
     expect(eventsRepo.save).toHaveBeenCalledWith(
       expect.objectContaining({
         type: PolicyEventType.CREATED,
-        payload: expect.objectContaining({ duplicatedFrom: 'policy-1' }),
       }),
     );
+    expect(eventsRepo.save.mock.calls.at(-1)?.[0]).toMatchObject({
+      payload: { duplicatedFrom: 'policy-1' },
+    });
   });
 });

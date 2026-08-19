@@ -41,6 +41,16 @@ export const policyFieldSchema = z
         path: ['options'],
       });
     }
+    if (
+      (field.min !== undefined || field.max !== undefined) &&
+      field.type !== 'number'
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'min and max are only allowed on number fields',
+        path: [field.min !== undefined ? 'min' : 'max'],
+      });
+    }
   });
 
 export const policySectionSchema = z.object({
@@ -53,9 +63,25 @@ export const policySectionSchema = z.object({
   fields: z.array(policyFieldSchema).min(1).max(40),
 });
 
-export const policyTypeSchema = z.object({
-  sections: z.array(policySectionSchema).min(1).max(20),
-});
+export const policyTypeSchema = z
+  .object({
+    sections: z.array(policySectionSchema).min(1).max(20),
+  })
+  .superRefine((schema, ctx) => {
+    const seen = new Set<string>();
+    for (const [sectionIndex, section] of schema.sections.entries()) {
+      for (const [fieldIndex, field] of section.fields.entries()) {
+        if (seen.has(field.key)) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: `Duplicate field key "${field.key}"`,
+            path: ['sections', sectionIndex, 'fields', fieldIndex, 'key'],
+          });
+        }
+        seen.add(field.key);
+      }
+    }
+  });
 
 export type PolicyField = z.infer<typeof policyFieldSchema>;
 export type PolicySection = z.infer<typeof policySectionSchema>;

@@ -142,13 +142,16 @@ export function PolicyEditPage() {
         />
 
         {formError ? (
-          <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
+          <p
+            data-testid="form-error"
+            className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700"
+          >
             {formError}
           </p>
         ) : null}
 
         <div className="flex gap-2">
-          <Button type="submit" disabled={updateMutation.isPending}>
+          <Button type="submit" data-testid="save-policy" disabled={updateMutation.isPending}>
             {updateMutation.isPending ? "Saving…" : "Save changes"}
           </Button>
           <Button

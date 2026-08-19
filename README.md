@@ -73,16 +73,23 @@ Tests (needs Node 20+ and pnpm 9+):
 
 ```bash
 pnpm install
-pnpm --filter @policy-management/api test
-pnpm --filter @policy-management/web test
+pnpm test
 ```
 
-Browser path against a running stack (Docker or local):
+API HTTP tests against a running Postgres (same `.env` as local/dev; Docker `pnpm db:up` first):
+
+```bash
+pnpm test:api:e2e
+```
+
+Browser path. Playwright starts a dedicated API on port `3001` and Vite on `5174` so it does not collide with Docker on `3000`/`5173`. Postgres must still be up (`pnpm db:up`):
 
 ```bash
 pnpm --filter @policy-management/web exec playwright install chromium
 pnpm test:e2e
 ```
+
+`pnpm test:all` runs unit tests, API HTTP tests, and Playwright.
 
 Local development without containerizing the app (Docker still used for Postgres):
 

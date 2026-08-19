@@ -151,7 +151,10 @@ export function PolicyCreatePage() {
         )}
 
         {formError ? (
-          <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
+          <p
+            data-testid="form-error"
+            className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700"
+          >
             {formError}
           </p>
         ) : null}

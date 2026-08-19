@@ -163,6 +163,7 @@ export function PolicyListPage() {
       <div className="flex flex-col gap-3 rounded-2xl border border-ink-100 bg-white p-4 shadow-panel sm:flex-row sm:items-end">
         <div className="min-w-0 flex-1">
           <Input
+            id="policy-search"
             label="Search"
             placeholder="Name or attribute…"
             value={q}
@@ -245,7 +246,7 @@ export function PolicyListPage() {
       ) : null}
 
       {policiesQuery.data && policiesQuery.data.data.length > 0 ? (
-        <div className="overflow-hidden rounded-2xl border border-ink-100 bg-white shadow-panel">
+        <div className="overflow-x-auto rounded-2xl border border-ink-100 bg-white shadow-panel">
           <table className="min-w-full text-left text-sm">
             <thead className="border-b border-ink-100 bg-ink-50/70 text-[11px] uppercase tracking-[0.1em] text-ink-400">
               <tr>

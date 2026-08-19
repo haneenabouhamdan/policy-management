@@ -1,7 +1,7 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 import { AuthProvider } from "./auth/AuthContext";
 import { RequireAuth } from "./auth/RequireAuth";
-import { AppShell } from "./components/layout/AppShell";
+import { App as Layout } from "./components/layout/App";
 import { LoginPage } from "./pages/LoginPage";
 import { PolicyCreatePage } from "./pages/PolicyCreatePage";
 import { PolicyDetailPage } from "./pages/PolicyDetailPage";
@@ -17,7 +17,7 @@ export default function App() {
         <Route
           element={
             <RequireAuth>
-              <AppShell />
+              <Layout />
             </RequireAuth>
           }
         >

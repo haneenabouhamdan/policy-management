@@ -15,6 +15,9 @@
     "db:down": "docker compose down",
     "db:logs": "docker compose logs -f postgres",
     "seed": "pnpm --filter @policy-management/api seed",
-    "test:e2e": "pnpm --filter @policy-management/web test:e2e"
+    "test": "pnpm --filter @policy-management/api test && pnpm --filter @policy-management/web test",
+    "test:api:e2e": "pnpm --filter @policy-management/api test:e2e",
+    "test:e2e": "pnpm --filter @policy-management/web test:e2e",
+    "test:all": "pnpm test && pnpm test:api:e2e && pnpm test:e2e"
   }
 }

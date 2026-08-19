@@ -41,6 +41,7 @@ export function PolicyDashboardStrip({
             <button
               key={card.label}
               type="button"
+              data-testid={`status-filter-${card.key || "all"}`}
               onClick={() => onStatus(card.key)}
               className={cn(
                 "rounded-2xl border bg-white px-4 py-3 text-left shadow-panel transition",
@@ -61,6 +62,7 @@ export function PolicyDashboardStrip({
         })}
         <button
           type="button"
+          data-testid="stale-filter"
           onClick={onStale}
           className={cn(
             "rounded-2xl border px-4 py-3 text-left shadow-panel transition",

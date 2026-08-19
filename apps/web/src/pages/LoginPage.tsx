@@ -95,7 +95,10 @@ export function LoginPage() {
             </p>
           ) : null}
           {error ? (
-            <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
+            <p
+              data-testid="login-error"
+              className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700"
+            >
               {error}
             </p>
           ) : null}

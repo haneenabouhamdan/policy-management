@@ -159,7 +159,7 @@ export function PolicyTypesPage() {
           </p>
         </div>
         {canManageTypes ? (
-          <Button onClick={() => (showForm ? resetForm() : openCreate())}>
+          <Button data-testid="new-product" onClick={() => (showForm ? resetForm() : openCreate())}>
             {showForm ? "Close form" : "New product"}
           </Button>
         ) : null}
@@ -196,12 +196,15 @@ export function PolicyTypesPage() {
           )}
 
           {formError ? (
-            <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
+            <p
+              data-testid="product-form-error"
+              className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700"
+            >
               {formError}
             </p>
           ) : null}
 
-          <Button type="submit" disabled={busy}>
+          <Button type="submit" data-testid="save-product" disabled={busy}>
             {busy ? "Saving…" : editingId ? "Save product" : "Create product"}
           </Button>
         </form>
@@ -229,7 +232,7 @@ export function PolicyTypesPage() {
       ) : null}
 
       {typesQuery.data && typesQuery.data.length > 0 ? (
-        <div className="overflow-hidden rounded-2xl border border-ink-100 bg-white shadow-panel">
+        <div className="overflow-x-auto rounded-2xl border border-ink-100 bg-white shadow-panel">
           <table className="min-w-full text-left text-sm">
             <thead className="border-b border-ink-100 bg-ink-50/70 text-[11px] uppercase tracking-[0.1em] text-ink-400">
               <tr>

@@ -47,6 +47,7 @@ export function UserMenu() {
           "flex items-center gap-2 rounded-full py-1 pl-1 pr-2.5 transition hover:bg-ink-100",
           open && "bg-ink-100",
         )}
+        data-testid="user-menu"
       >
         <span className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-700 text-xs font-semibold text-white">
           {initials(user?.fullName)}
@@ -91,10 +92,11 @@ export function UserMenu() {
               {user?.role}
             </span>
           </div>
-          <button
-            type="button"
-            role="menuitem"
-            onClick={() => {
+            <button
+              type="button"
+              role="menuitem"
+              data-testid="sign-out"
+              onClick={() => {
               setOpen(false);
               logout();
             }}

@@ -1,10 +1,23 @@
-import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsObject, IsOptional, IsString, MaxLength } from 'class-validator';
+import { ApiHideProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import {
+  IsNotEmpty,
+  IsObject,
+  IsOptional,
+  IsString,
+  MaxLength,
+  Validate,
+} from 'class-validator';
+import { AtLeastOneOfConstraint } from '../../common/validation/at-least-one.constraint';
 
 export class UpdatePolicyTypeDto {
+  @ApiHideProperty()
+  @Validate(AtLeastOneOfConstraint, ['name', 'description', 'schema'])
+  _atLeastOne?: never;
+
   @ApiPropertyOptional({ example: 'Travel', maxLength: 120 })
   @IsOptional()
   @IsString()
+  @IsNotEmpty()
   @MaxLength(120)
   name?: string;
 

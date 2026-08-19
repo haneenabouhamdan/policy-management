@@ -1,16 +1,12 @@
 import { expect, test } from "@playwright/test";
+import { USERS, loginAs } from "./helpers";
 
 test("login, create draft, activate, then reactivate with a reason", async ({
   page,
 }) => {
   const policyName = `E2E Reactivate Cover ${Date.now()}`;
 
-  await page.goto("/login");
-  await page.getByLabel("MGA").selectOption("atom");
-  await page.locator("#login-email").fill("maya.hassan@atomcover.com");
-  await page.locator("#login-password").fill("Admin123!");
-  await page.getByTestId("login-submit").click();
-  await expect(page.getByRole("heading", { name: "Policies" })).toBeVisible();
+  await loginAs(page, USERS.atomAdmin);
 
   await page.getByTestId("new-policy").click();
   await expect(page.getByRole("heading", { name: "New policy" })).toBeVisible();

@@ -98,13 +98,15 @@ describe('PolicyTypesService', () => {
     expect(eventsRepo.save).toHaveBeenCalledWith(
       expect.objectContaining({
         type: PolicyTypeEventType.SCHEMA_CHANGED,
-        payload: expect.objectContaining({
-          fromVersion: 1,
-          toVersion: 2,
-          changed: ['Regions'],
-        }),
       }),
     );
+    expect(eventsRepo.save.mock.calls.at(-1)?.[0]).toMatchObject({
+      payload: {
+        fromVersion: 1,
+        toVersion: 2,
+        changed: ['Regions'],
+      },
+    });
   });
 
   it('does not bump version when the schema is unchanged', async () => {
@@ -146,11 +148,11 @@ describe('PolicyTypesService', () => {
     expect(eventsRepo.save).toHaveBeenCalledWith(
       expect.objectContaining({
         type: PolicyTypeEventType.UPDATED,
-        payload: expect.objectContaining({
-          name: { from: 'Travel', to: 'Travel Cover' },
-        }),
       }),
     );
+    expect(eventsRepo.save.mock.calls.at(-1)?.[0]).toMatchObject({
+      payload: { name: { from: 'Travel', to: 'Travel Cover' } },
+    });
   });
 
   it('rejects duplicate names', async () => {
@@ -180,9 +182,11 @@ describe('PolicyTypesService', () => {
     expect(eventsRepo.save).toHaveBeenCalledWith(
       expect.objectContaining({
         type: PolicyTypeEventType.CREATED,
-        payload: expect.objectContaining({ schemaVersion: 1 }),
       }),
     );
+    expect(eventsRepo.save.mock.calls.at(-1)?.[0]).toMatchObject({
+      payload: { schemaVersion: 1 },
+    });
   });
 
   it('rejects a duplicate product name on create', async () => {

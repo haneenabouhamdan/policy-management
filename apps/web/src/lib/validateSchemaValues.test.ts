@@ -77,5 +77,47 @@ describe("validateSchemaValues", () => {
         photo: "https://images.example.com/risk.jpg",
       }),
     ).toEqual({});
+    expect(
+      validateSchemaValues(withImage, { photo: "data:text/plain;base64,aaa" }),
+    ).toEqual({ photo: "Upload an image or paste a URL" });
+  });
+
+  it("rejects overlong strings, bad dates, and non-numbers", () => {
+    const mixed: PolicyTypeSchema = {
+      sections: [
+        {
+          id: "meta",
+          title: "Meta",
+          fields: [
+            { key: "title", label: "Title", type: "string", required: true },
+            { key: "notes", label: "Notes", type: "text" },
+            { key: "start", label: "Start", type: "date", required: true },
+            { key: "flag", label: "Flag", type: "boolean" },
+          ],
+        },
+      ],
+    };
+
+    expect(
+      validateSchemaValues(mixed, {
+        title: "a".repeat(201),
+        start: "01-02-2026",
+        flag: "yes",
+      }),
+    ).toMatchObject({
+      title: "Must be at most 200 characters",
+      start: "Use YYYY-MM-DD",
+      flag: "Must be yes or no",
+    });
+    expect(
+      validateSchemaValues(schema, { regions: ["UAE"], days: "7" }),
+    ).toEqual({ days: "Must be a number" });
+    expect(
+      validateSchemaValues(mixed, {
+        title: "OK",
+        start: "2026-08-19",
+        flag: true,
+      }),
+    ).toEqual({});
   });
 });

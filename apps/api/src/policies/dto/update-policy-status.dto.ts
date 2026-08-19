@@ -1,5 +1,11 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsEnum, IsOptional, IsString, MaxLength } from 'class-validator';
+import {
+  IsEnum,
+  IsString,
+  MaxLength,
+  MinLength,
+  ValidateIf,
+} from 'class-validator';
 import { PolicyStatus } from '../../entities/policy-status.enum';
 
 export class UpdatePolicyStatusDto {
@@ -14,10 +20,17 @@ export class UpdatePolicyStatusDto {
 
   @ApiPropertyOptional({
     example: 'Cover reinstated after outstanding premium paid',
-    description: 'Required when reactivating an inactive policy',
+    description:
+      'Required (min 8 characters) when reactivating an inactive policy. If sent, must be 8–500 characters.',
+    minLength: 8,
+    maxLength: 500,
   })
-  @IsOptional()
+  @ValidateIf(
+    (dto: UpdatePolicyStatusDto) =>
+      dto.reason != null && String(dto.reason).length > 0,
+  )
   @IsString()
+  @MinLength(8)
   @MaxLength(500)
   reason?: string;
 }

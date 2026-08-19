@@ -157,6 +157,7 @@ export function PolicyDetailPage() {
             <>
             <Button
               variant="secondary"
+              data-testid="duplicate-policy"
               onClick={() => duplicateMutation.mutate()}
               disabled={duplicateMutation.isPending}
             >
@@ -165,6 +166,7 @@ export function PolicyDetailPage() {
             <Button
               variant="secondary"
               className="gap-1.5"
+              data-testid="edit-policy"
               onClick={() => navigate(`/policies/${policy.id}/edit`)}
             >
               <svg
